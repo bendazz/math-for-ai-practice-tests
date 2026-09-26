@@ -404,6 +404,17 @@ h2 {
 
 footer { font-family: var(--sans); font-size: .8rem; color: var(--ink-soft); padding: 0 0 40px; }
 
+/* tables in prompts: confusion matrices and score lists (tests 6–10) */
+.qt-wrap { overflow-x: auto; margin: 12px 0 6px; }
+.qt { border-collapse: collapse; margin: 0 auto; font-family: var(--sans); font-size: .85rem; }
+.qt th, .qt td { border: 1px solid var(--rule-strong); padding: 6px 14px; text-align: center; }
+.qt th { color: var(--ink-soft); font-weight: 600; background: var(--paper); }
+.qt tr:first-child td:first-child { border: 0; background: none; }
+.cm td { min-width: 84px; padding: 8px 14px; }
+.cm td b { display: block; font-size: 1.3em; color: var(--ink); }
+.cm td small { color: var(--ink-soft); font-size: .78em; }
+.cm th { white-space: nowrap; }
+
 @media (max-width: 560px) {
   body { font-size: 1rem; }
   .question { padding: 16px 14px 14px; }

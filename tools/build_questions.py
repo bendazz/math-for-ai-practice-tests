@@ -1,5 +1,5 @@
 """
-build_questions.py — the ONE source of truth for all 50 practice questions.
+build_questions.py — the ONE source of truth for all 100 practice questions.
 
 Run it after any edit:
 
@@ -9,8 +9,8 @@ It checks every answer, then writes ../questions.js (the file the site loads).
 Never edit questions.js by hand; it gets overwritten.
 
 What gets checked:
-  * vector / dot / cosine / precision-recall answers are recomputed here in
-    Python and asserted against the answer key;
+  * vector / dot / cosine / precision-recall / confusion-matrix / threshold /
+    F1 answers are recomputed here in Python and asserted against the answer key;
   * every chunking question is re-run through the splitting algorithm, and —
     if you run it with the Langflow Desktop Python, which has langchain
     installed — through the REAL CharacterTextSplitter as well:
@@ -18,7 +18,9 @@ What gets checked:
         ~/.langflow/.langflow-venv/bin/python tools/build_questions.py
 
   * each question has exactly 4 choices, one correct, no duplicates;
-  * answer letters are spread evenly across A–D.
+  * answer letters are spread evenly across A–D (within tests 1–5, and within 6–10);
+  * tests 1–5 have exactly two questions per topic. Tests 6–10 don't: their
+    topics were drawn at random.
 
 Question format
   choices: list of (text, why). The FIRST entry is the correct answer and its
@@ -676,10 +678,595 @@ q(5, PR, "B", "<p>Two students search the same 30-sentence collection for a ques
   "They got 60% and 75% — short on both.</p>")
 
 
+# ================================================================== TESTS 6–10
+# Mixed review. Unlike tests 1–5, topics are NOT balanced: each question's topic
+# was drawn at random (seeded) from the nine topics below, so a test can have
+# three confusion-matrix questions and no chunking at all.
+
+CM = "The confusion matrix"
+CPR = "Precision & recall for classifiers"
+THR = "The threshold"
+F1S = "F1 score"
+
+
+def grid(say_yes, say_no, is_yes, is_no, tp, fn, fp, tn):
+    """Confusion matrix, same orientation as the textbook: truth down the side, the model's call across the top."""
+    return (f'<div class="qt-wrap"><table class="qt cm"><tr><td></td><th>{say_yes}</th><th>{say_no}</th></tr>'
+            f'<tr><th>{is_yes}</th><td><b>{tp}</b><small>TP</small></td><td><b>{fn}</b><small>FN</small></td></tr>'
+            f'<tr><th>{is_no}</th><td><b>{fp}</b><small>FP</small></td><td><b>{tn}</b><small>TN</small></td></tr></table></div>')
+
+
+def table(head, rows):
+    h = "".join(f"<th>{x}</th>" for x in head)
+    b = "".join("<tr>" + "".join(f"<td>{x}</td>" for x in r) + "</tr>" for r in rows)
+    return f'<div class="qt-wrap"><table class="qt"><tr>{h}</tr>{b}</table></div>'
+
+
+def counts(items, t):
+    """items = [(score, is_positive)]; flag when score is at or above t. Returns TP, FP, FN, TN."""
+    tp = sum(1 for s, y in items if s >= t and y)
+    fp = sum(1 for s, y in items if s >= t and not y)
+    fn = sum(1 for s, y in items if s < t and y)
+    return tp, fp, fn, len(items) - tp - fp - fn
+
+
+def f1(tp, fp, fn):
+    return F(2 * tp, 2 * tp + fp + fn)
+
+
+OUTCOMES_WHY = {
+    "TP": "A true positive is a correct yes: the model said yes and the thing really was there.",
+    "TN": "A true negative is a correct no: the model said no and the thing really wasn't there.",
+}
+
+# ------------------------------------------------------------------ TEST 6
+q(6, CM, "D", "<p>A store's self-checkout camera watches for items that weren't scanned. It flags a shopper for "
+              "skipping an item, but the shopper had actually scanned everything. Which outcome is this?</p>",
+  [("False positive", None),
+   ("False negative", "A false negative is a <em>miss</em>: a skipped item the camera didn't flag. Here the camera did flag — wrongly."),
+   ("True positive", OUTCOMES_WHY["TP"] + " Nothing was skipped here."),
+   ("True negative", OUTCOMES_WHY["TN"] + " But the camera said yes.")],
+  "<p>The camera is hunting for skipped items, so a flag is a <strong>positive</strong>. It flagged (positive), "
+  "and it was wrong (false). That's a <strong>false positive</strong> — a false alarm.</p>")
+
+tp, fp, fn = 12, 20 - 12, 15 - 12
+assert (tp, fp, fn, 100 - tp - fp - fn) == (12, 8, 3, 77)
+q(6, CM, "D", "<p>A hospital AI reads <strong>100</strong> chest X-rays looking for pneumonia. <strong>15</strong> of the "
+              "patients really have pneumonia. The AI flags <strong>20</strong> X-rays, and <strong>12</strong> of the "
+              "flagged patients really have pneumonia. Which confusion matrix is right?</p>",
+  [("TP 12, FP 8, FN 3, TN 77", None),
+   ("TP 12, FP 3, FN 8, TN 77", "FP and FN are swapped. False alarms come from the flags (20 − 12); misses come from the sick patients (15 − 12)."),
+   ("TP 12, FP 8, FN 3, TN 80", "80 is 100 − 20, everyone who wasn't flagged — but that includes the 3 missed pneumonia patients. Check: the four cells must add to 100."),
+   ("TP 15, FP 5, FN 0, TN 80", "That assumes the AI caught all 15. Only 12 of the flagged patients were really sick.")],
+  "<p>TP = flagged and sick = <strong>12</strong>.</p>"
+  "<p>FP = flagged but healthy = 20 − 12 = <strong>8</strong>.</p>"
+  "<p>FN = sick but not flagged = 15 − 12 = <strong>3</strong>.</p>"
+  "<p>TN = everyone else = 100 − 12 − 8 − 3 = <strong>77</strong>.</p>")
+
+assert (pct(30 + 150, 200), pct(150, 200), pct(5 + 15, 200), pct(30, 200)) == (90, 75, 10, 15)
+q(6, CM, "D", "<p>A weather AI predicts whether hail will fall, for each of <strong>200</strong> afternoons.</p>"
+              + grid("AI said hail", "AI said no hail", "Really hail", "Really no hail", 30, 15, 5, 150)
+              + "<p>What is its <strong>accuracy</strong>?</p>",
+  [("90%", None),
+   ("75%", "That's 150 ÷ 200, the true negatives alone. Accuracy counts both kinds of correct call."),
+   ("10%", "That's (5 + 15) ÷ 200 — the share of calls that were <em>wrong</em>."),
+   ("15%", "That's 30 ÷ 200, the true positives alone.")],
+  "<p>Accuracy = correct calls ÷ everything = (TP + TN) ÷ 200 = (30 + 150) ÷ 200 = 180 ÷ 200 = <strong>90%</strong>.</p>")
+
+assert dot((5, -2), (-1, 3)) == -11
+q(6, DOT, "A", "<p>Compute the dot product (5, −2) · (−1, 3).</p>",
+  [("−11", None),
+   ("1", "A sign slip: (−2)(3) = −6, so it's −5 − 6, not −5 + 6."),
+   ("(−5, −6)", "Multiply matching components, then <em>add</em> them. A dot product is one number."),
+   ("6", "That's (5 + (−2)) × (−1 + 3) — adding inside each vector first.")],
+  "<p>(5)(−1) + (−2)(3) = −5 − 6 = <strong>−11</strong>.</p>")
+
+T = "Pack a lunch.\nBring water.\nWear boots.\nCheck the map."
+q(6, EDGE, "D", "<p>How long is chunk 1?</p>",
+  [("38", None),
+   ("26", "Line 3 fits: 26 + 11 + 1 = 38 is <em>equal</em> to the Chunk Size, not over it. Only “over” forces an emit."),
+   ("37", "Three lines glued together need two newlines: 13 + 12 + 11 + 2 = 38."),
+   ("53", "Line 4 doesn't fit: 38 + 14 + 1 = 53 is over 38.")],
+  "<p>Atoms: 13, 12, 11, 14.</p>"
+  "<p>Buffer 13 → 13 + 12 + 1 = 26 → 26 + 11 + 1 = <strong>38</strong>. That's exactly the Chunk Size, and "
+  "38 is not <em>over</em> 38, so line 3 fits.</p>"
+  "<p>Line 4: 38 + 14 + 1 = 53, over 38. <strong>Emit chunk 1 = 38.</strong> Chunk 2 is just line 4: 14.</p>",
+  doc=(T, N, 38, 0, [38, 14]))
+
+assert (pct(495, 500)) == 99
+q(6, CM, "D", "<p>A wind farm uses an AI camera to spot eagles, so it can pause the turbines. On <strong>500</strong> test "
+              "clips, <strong>5</strong> contain an eagle. A lazy model answers “no eagle” on <em>every</em> clip. "
+              "What is its accuracy, and how many eagles does it catch?</p>",
+  [("Accuracy 99%, and it catches no eagles", None),
+   ("Accuracy 1%, and it catches no eagles", "1% is the share of clips with an eagle. The model is right on all 495 eagle-free clips, so its accuracy is high."),
+   ("Accuracy 100%, and it catches all 5", "It never says “eagle,” so it can't catch any."),
+   ("Accuracy 99%, and it catches all 5", "Right accuracy, but a model that never says yes has zero true positives.")],
+  "<p>It's right on the 495 clips with no eagle (TN 495) and wrong on the 5 with one (FN 5). "
+  "Accuracy = 495 ÷ 500 = <strong>99%</strong>, and it catches <strong>none</strong>.</p>"
+  "<p>That's the accuracy trap: when the thing you're hunting is rare, doing nothing scores high.</p>")
+
+assert (pct(4, 5), pct(4, 8), pct(4, 40)) == (80, 50, 10)
+q(6, PR, "B", "<p>A search engine runs over <strong>40 sentences</strong> from a campus handbook. The question is "
+              "<em>“When is the library open?”</em> The answer key marks <strong>8 sentences relevant</strong>. "
+              "You set <strong>k = 5</strong>, and <strong>4</strong> of the 5 results are relevant. "
+              "What are the precision and recall?</p>",
+  [("Precision 80%, recall 50%", None),
+   ("Precision 50%, recall 80%", "Swapped. Precision divides by k (5); recall divides by the relevant sentences (8)."),
+   ("Precision 80%, recall 10%", "10% is 4 ÷ 40, dividing by the whole collection. Recall divides by the 8 relevant sentences."),
+   ("Precision 50%, recall 50%", "Precision divides by what came back (k = 5), not by the relevant sentences.")],
+  "<p>Precision = hits ÷ k = 4 ÷ 5 = <strong>80%</strong>.</p>"
+  "<p>Recall = hits ÷ relevant = 4 ÷ 8 = <strong>50%</strong>.</p>")
+
+assert dot((1, 0), (3, 4)) == 3 and math.isqrt(norm2((3, 4))) == 5
+q(6, DOT, "C", "<p>Find the cosine similarity of (1, 0) and (3, 4).</p>",
+  [("0.6", None),
+   ("3", "That's the dot product. Now divide by both lengths."),
+   ("0.5", "That's 3 ÷ (1 + 5). Multiply the lengths, don't add them."),
+   ("0.75", "That's 3 ÷ 4. The bottom is the product of the two lengths, 1 × 5.")],
+  f"<p>Dot product: (1)(3) + (0)(4) = 3.</p>"
+  f"<p>Lengths: ‖(1, 0)‖ = 1 and ‖(3, 4)‖ = √25 = 5.</p>"
+  f"<p>Cosine similarity = {fr(3, '1 × 5')} = {fr(3, 5)} = <strong>0.6</strong>.</p>")
+
+T = "Stretch first.\nRun two laps around the track before practice starts.\nCool down."
+q(6, EDGE, "B", "<p>Line 2 is 53 characters, and the Chunk Size is only 30. What happens to it?</p>",
+  [("It becomes a chunk by itself, 53 characters long", None),
+   ("It's cut into a 30-character chunk and a 23-character chunk", "Atoms are never split. The splitter only cuts at separators."),
+   ("It's skipped, because it can't fit", "Nothing is ever thrown away. Every atom lands in some chunk."),
+   ("It's glued to “Cool down.” in a 64-character chunk", "53 + 10 + 1 = 64 is over 30, so line 3 can't join it. It starts its own chunk.")],
+  "<p>Atoms: 14, 53, 10.</p>"
+  "<p>Buffer 14. Line 2: 14 + 53 + 1 = 68, over 30. <strong>Emit 14.</strong> The buffer empties and takes line 2: 53.</p>"
+  "<p>Line 3: 53 + 10 + 1 = 64, over 30. <strong>Emit 53.</strong> Then line 3 alone: 10.</p>"
+  "<p>Chunks: 14, 53, 10. A single atom that's too big comes out whole and over the size. "
+  "That's the <strong>only</strong> way a chunk can be over the Chunk Size.</p>",
+  doc=(T, N, 30, 0, [14, 53, 10]))
+
+assert tuple(2 * a - 3 * b for a, b in zip((3, -1), (1, 2))) == (3, -8)
+q(6, VEC, "A", "<p>Compute 2(3, −1) − 3(1, 2).</p>",
+  [(v(3, -8), None),
+   (v(2, -3), "That's (3, −1) − (1, 2): the 2 and the 3 never got used. Scale each vector first."),
+   (v(9, 4), "That's (6, −2) + (3, 6): added instead of subtracted."),
+   (v(3, 4), "A sign slip in the second component: −2 − 6 = −8, not 4.")],
+  "<p>Scale: 2(3, −1) = (6, −2) and 3(1, 2) = (3, 6).</p>"
+  "<p>Subtract matching components: (6 − 3, −2 − 6) = <strong>(3, −8)</strong>.</p>")
+
+# ------------------------------------------------------------------ TEST 7
+assert (pct(24, 32), pct(24, 30), pct(24 + 162, 200), pct(24, 200)) == (75, 80, 93, 12)
+q(7, CPR, "D", "<p>A city puts AI cameras on its buses to spot <strong>potholes</strong>. Tested on 200 stretches of road:</p>"
+               + grid("AI said pothole", "AI said fine", "Really pothole", "Really fine", 24, 6, 8, 162)
+               + "<p>What are its precision and recall?</p>",
+  [("Precision 75%, recall 80%", None),
+   ("Precision 80%, recall 75%", "Swapped. Precision reads the “said pothole” column (24 + 8); recall reads the “really pothole” row (24 + 6)."),
+   ("Precision 93%, recall 80%", "93% is (24 + 162) ÷ 200, the accuracy."),
+   ("Precision 12%, recall 80%", "12% is 24 ÷ 200, dividing by every stretch of road instead of just the flagged ones.")],
+  "<p>Precision = TP ÷ (TP + FP) = 24 ÷ 32 = <strong>75%</strong>. Of the stretches it flagged, 3 in 4 had a pothole.</p>"
+  "<p>Recall = TP ÷ (TP + FN) = 24 ÷ 30 = <strong>80%</strong>. It found 4 of every 5 potholes.</p>")
+
+assert F(2) * F(6, 10) * F(4, 10) / (F(6, 10) + F(4, 10)) == F(48, 100)
+q(7, F1S, "C", "<p>A wildlife camera flags photos that contain a fox. Its precision is <strong>0.6</strong> and its recall is "
+               "<strong>0.4</strong>. What is its F1 score?</p>",
+  [("0.48", None),
+   ("0.50", "That's the plain average. F1 is pulled toward the smaller number."),
+   ("0.24", "That's P × R. The formula doubles it and divides by P + R."),
+   ("0.40", "That's just the smaller of the two. F1 lands between them.")],
+  "<p>F1 = 2 × P × R ÷ (P + R) = 2 × 0.6 × 0.4 ÷ (0.6 + 0.4) = 0.48 ÷ 1.0 = <strong>0.48</strong>.</p>")
+
+assert (pct(3, 6), pct(3, 30), pct(6, 30)) == (50, 10, 20)
+q(7, PR, "C", "<p>A question has only <strong>3 relevant</strong> sentences in a collection of <strong>30</strong>. You set "
+              "<strong>k = 6</strong>. What is the <strong>best possible precision</strong> this search could get?</p>",
+  [("50%", None),
+   ("100%", "Six results, but only 3 relevant sentences exist. At least 3 results have to be junk."),
+   ("10%", "That's 3 ÷ 30, dividing by the whole collection."),
+   ("20%", "That's 6 ÷ 30, the share of the collection that came back.")],
+  "<p>Best possible hits = the smaller of k (6) and relevant (3) = 3.</p>"
+  "<p>Best possible precision = 3 ÷ 6 = <strong>50%</strong>. Even a perfect search can't beat that at k = 6. "
+  "To raise the ceiling, lower k.</p>")
+
+BOTTLES = [(F(55, 100), False), (F(92, 100), True), (F(30, 100), False), (F(60, 100), True),
+           (F(81, 100), False), (F(12, 100), False), (F(67, 100), True), (F(43, 100), True)]
+assert counts(BOTTLES, F(60, 100)) == (3, 1, 1, 3)
+q(7, THR, "D", "<p>A recycling robot scores each item on a conveyor belt for how likely it is to be a <strong>plastic bottle</strong>, "
+               "and grabs anything scoring <strong>at or above 0.60</strong>.</p>"
+               + table(["Item", "Score", "Really…"],
+                       [[i + 1, f"{float(s):.2f}", "bottle" if y else "not a bottle"] for i, (s, y) in enumerate(BOTTLES)])
+               + "<p>Which confusion matrix is right?</p>",
+  [("TP 3, FP 1, FN 1, TN 3", None),
+   ("TP 2, FP 1, FN 2, TN 3", "Item 4 scores exactly 0.60. “At or above” means it gets grabbed."),
+   ("TP 3, FP 2, FN 1, TN 2", "Item 1 scores 0.55, below 0.60, so it isn't grabbed."),
+   ("TP 4, FP 0, FN 0, TN 4", "A perfect sorter. But item 5 (0.81) isn't a bottle, and item 8 (0.43) is.")],
+  "<p>Grabbed (0.60 or more): items 2 (0.92), 4 (0.60), 5 (0.81), 7 (0.67).</p>"
+  "<p>Bottles among them: 2, 4, 7 → <strong>TP 3</strong>. Not a bottle: item 5 → <strong>FP 1</strong>.</p>"
+  "<p>Left on the belt: 1, 3, 6, 8. The bottle there is item 8 (0.43) → <strong>FN 1</strong>. The rest → <strong>TN 3</strong>.</p>")
+
+assert dot((2, 3), (6, -4)) == 0
+q(7, DOT, "A", "<p>For what value of <em>k</em> is (<em>k</em>, 3) perpendicular to (6, −4)?</p>",
+  [("2", None),
+   ("−2", "A sign slip: 6k + (3)(−4) = 6k − 12, and 6k − 12 = 0 gives k = +2."),
+   ("12", "6k = 12, so k is 12 ÷ 6. Don't stop at 12."),
+   (fr(1, 2), "That's 6 ÷ 12, upside down. 6k = 12 means k = 12 ÷ 6.")],
+  "<p>Perpendicular means the dot product is 0: 6k + (3)(−4) = 0, so 6k − 12 = 0, 6k = 12, <strong>k = 2</strong>.</p>"
+  "<p>Check: (2)(6) + (3)(−4) = 12 − 12 = 0. ✓</p>")
+
+assert f1(6, 3, 1) == F(3, 4) and F(6, 10) == F(6, 6 + 3 + 1)
+q(7, F1S, "C", "<p>An app that spots mold in photos of bread gets <strong>TP 6, FP 3, FN 1</strong>. What is its F1 score?</p>",
+  [("0.75", None),
+   ("0.60", "That's 6 ÷ (6 + 3 + 1). The shortcut doubles TP on top <em>and</em> bottom: 2TP ÷ (2TP + FP + FN)."),
+   ("About 0.67", "That's the precision, 6 ÷ 9. F1 combines precision with recall."),
+   ("About 0.86", "That's the recall, 6 ÷ 7. F1 combines recall with precision.")],
+  "<p>Use the count shortcut: F1 = 2TP ÷ (2TP + FP + FN) = 12 ÷ (12 + 3 + 1) = 12 ÷ 16 = <strong>0.75</strong>.</p>"
+  "<p>(Going through precision 6/9 and recall 6/7 gives the same answer, with much uglier fractions.)</p>")
+
+q(7, CM, "B", "<p>A bank's AI predicts which applicants will <strong>repay</strong> a loan; a “yes” means “will repay.” "
+              "It says yes to an applicant who then never pays the loan back. Which outcome is this?</p>",
+  [("False positive", None),
+   ("False negative", "That's the instinct that “positive” means the bad thing. Here the model is hunting for repayers: a yes is “will repay.”"),
+   ("True positive", "The model said yes, but it was wrong."),
+   ("True negative", "The model said yes, not no.")],
+  "<p>What is the model hunting for? Applicants who <em>will repay</em>. So “will repay” is the positive.</p>"
+  "<p>It said yes (positive) and was wrong (false): a <strong>false positive</strong>. "
+  "Positive means “the model said yes,” not “something bad.”</p>")
+
+T = "Rinse the rice.\nAdd two cups.\nBoil it.\nCover the pot.\nWait ten minutes."
+q(7, EDGE, "C", "<p>Give the chunk lengths.</p>",
+  [("38, 23, 32", None),
+   ("38, 23, 17", "When chunk 2 is emitted, popping “Boil it.” leaves 14. 14 is not over 14, so “Cover the pot.” stays."),
+   ("38, 32", "That ignores the overlap. With overlap 14, the popping stops as soon as the buffer is 14 or less."),
+   ("38, 37, 32", "After popping line 1 the buffer is 22, still over 14, so line 2 has to go too.")],
+  "<p>Atoms: 15, 13, 8, 14, 17.</p>"
+  "<p>Buffer 15 → 29 → 38. Line 4: 38 + 14 + 1 = 53, over 40. <strong>Emit 38.</strong></p>"
+  "<p>Pop while over 14: → 22 → 8. Stop. “Boil it.” carries. Buffer 8 → 8 + 14 + 1 = 23. "
+  "Line 5: 23 + 17 + 1 = 41, over 40. <strong>Emit 23.</strong></p>"
+  "<p>Pop while over 14: drop “Boil it.” → 23 − 8 − 1 = 14. 14 is <em>not over</em> 14, so stop. "
+  "Buffer 14 → 14 + 17 + 1 = 32. End: <strong>emit 32.</strong></p>",
+  doc=(T, N, 40, 14, [38, 23, 32]))
+
+assert math.isqrt(norm2((8, 15))) == 17
+q(7, VEC, "C", "<p>Find the length ‖(8, 15)‖.</p>",
+  [("17", None),
+   ("23", "That's 8 + 15. Length squares the components first."),
+   ("289", "That's 8² + 15², the right sum without the square root."),
+   ("7", "That's 15 − 8. There's no subtraction in the length formula.")],
+  "<p>√(8² + 15²) = √(64 + 225) = √289 = <strong>17</strong>.</p>")
+
+T = "Plug in the kettle.\nFill it halfway.\nPick a mug.\nAdd a tea bag.\nPour the water."
+q(7, CHK, "B", "<p>Give the chunks and their lengths.</p>",
+  [("Two chunks: 36 and 42", None),
+   ("Two chunks: 36 and 40", "Chunk 2 has three lines, so it needs two newlines: 11 + 14 + 15 + 2 = 42."),
+   ("Two chunks: 48 and 30", "48 is over 45, so line 3 can't join chunk 1."),
+   ("Five chunks: 19, 16, 11, 14, 15", "The separator makes the atoms. Atoms get glued together until the next one won't fit.")],
+  "<p>Atoms: 19, 16, 11, 14, 15.</p>"
+  "<p>Buffer 19 → 19 + 16 + 1 = 36. Line 3: 36 + 11 + 1 = 48, over 45. <strong>Emit 36.</strong></p>"
+  "<p>No overlap, so start fresh: 11 → 11 + 14 + 1 = 26 → 26 + 15 + 1 = 42. End: <strong>emit 42.</strong></p>",
+  doc=(T, N, 45, 0, [36, 42]))
+
+# ------------------------------------------------------------------ TEST 8
+q(8, THR, "B", "<p>A plant nursery's AI flags leaves that show signs of blight. You <strong>lower</strong> its threshold "
+               "from 0.7 to 0.4. What happens to its <strong>recall</strong>?</p>",
+  [("It goes up or stays the same. It can never go down", None),
+   ("It goes down", "Backwards. A lower bar flags more leaves, so it can only catch more of the blighted ones."),
+   ("It always goes up", "Almost. If no blighted leaf scores between 0.4 and 0.7, nothing new gets caught and recall stays put."),
+   ("There's no way to tell. It could go either way", "Lowering the threshold never un-flags anything, so a caught leaf stays caught.")],
+  "<p>A lower threshold only <em>adds</em> flags; nothing that was flagged gets un-flagged. So TP can only grow or stay "
+  "the same, while the number of blighted leaves (TP + FN) doesn't change.</p>"
+  "<p>Recall = TP ÷ (TP + FN) therefore <strong>goes up or stays the same</strong>. (Precision is the one that can move either way.)</p>")
+
+q(8, CM, "B", "<p>A cashier's scanner checks <strong>50</strong> bills for counterfeits. <strong>6</strong> of them are fake. "
+              "The scanner flags <strong>5</strong> bills, and <strong>4</strong> of those are fake. How many real bills were "
+              "wrongly flagged, and how many fakes got through?</p>",
+  [("1 real bill flagged; 2 fakes got through", None),
+   ("2 real bills flagged; 1 fake got through", "Swapped. The false alarms come from the flags (5 − 4); the misses come from the fakes (6 − 4)."),
+   ("4 real bills flagged; 2 fakes got through", "The 4 are flagged bills that really were fake. Those are the scanner's successes."),
+   ("1 real bill flagged; 1 fake got through", "5 − 4 = 1 counts the false alarms. The misses start from the 6 fakes: 6 − 4 = 2.")],
+  "<p>FP (real, but flagged) = flagged − caught fakes = 5 − 4 = <strong>1</strong>.</p>"
+  "<p>FN (fake, but not flagged) = fakes − caught fakes = 6 − 4 = <strong>2</strong>.</p>")
+
+T = "Tune the guitar.\nWarm up your hands.\nPlay the scale twice.\nLearn the new chord.\nPractice the song."
+q(8, CHK, "C", "<p>How long is chunk 2?</p>",
+  [("42", None),
+   ("61", "Adding line 5 gives 42 + 18 + 1 = 61, which is over 60, even if only by 1. It can't join."),
+   ("41", "Two lines glued together need a newline: 21 + 20 + 1 = 42."),
+   ("39", "That's chunk 3.")],
+  "<p>Atoms: 16, 19, 21, 20, 18.</p>"
+  "<p>Buffer 16 → 36 → 58. Line 4: 58 + 20 + 1 = 79, over 60. <strong>Emit 58.</strong></p>"
+  "<p>Pop while over 25: → 41 → 21. Stop. “Play the scale twice.” carries.</p>"
+  "<p>Buffer 21 → 21 + 20 + 1 = 42. Line 5: 42 + 18 + 1 = 61, over 60. <strong>Emit chunk 2 = 42.</strong></p>",
+  doc=(T, N, 60, 25, [58, 42, 39]))
+
+CRACKS = [(F(66, 100), False), (F(88, 100), True), (F(20, 100), False), (F(52, 100), True),
+          (F(8, 100), False), (F(35, 100), True), (F(74, 100), True), (F(41, 100), False)]
+assert counts(CRACKS, F(30, 100)) == (4, 2, 0, 2) and counts(CRACKS, F(10, 100)) == (4, 3, 0, 1)
+assert counts(CRACKS, F(40, 100))[2] == 1 and counts(CRACKS, F(50, 100))[2] == 1
+q(8, THR, "A", "<p>A drone photographs a bridge, and an AI scores each photo for how likely it shows a <strong>crack</strong>.</p>"
+               + table(["Photo", "Score", "Really…"],
+                       [[i + 1, f"{float(s):.2f}", "crack" if y else "no crack"] for i, (s, y) in enumerate(CRACKS)])
+               + "<p>The engineers want <strong>every</strong> crack flagged, and after that, as few false alarms as possible. "
+                 "Which threshold should they use?</p>",
+  [("0.30", None),
+   ("0.50", "Photo 6 is a crack scoring 0.35. At 0.50 it's missed."),
+   ("0.40", "Photo 6 (a crack at 0.35) is still below 0.40."),
+   ("0.10", "It catches every crack, but it also flags photo 3 (0.20) — three false alarms instead of two.")],
+  "<p>The lowest-scoring crack is photo 6 at 0.35, so the threshold must be 0.35 or lower. That rules out 0.50 and 0.40.</p>"
+  "<p>At 0.30: flagged photos 1, 2, 4, 6, 7, 8. All 4 cracks, plus 2 false alarms (photos 1 and 8).</p>"
+  "<p>At 0.10: photo 3 (0.20) joins them, for 3 false alarms. So <strong>0.30</strong>.</p>")
+
+T = "Wake up.\nMake the bed.\nBrush your teeth.\nGet dressed.\nEat breakfast.\nPack your bag.\nCatch the bus."
+q(8, CHK, "C", "<p>What is chunk 2?</p>",
+  [("“Brush your teeth.” and “Get dressed.” (30 characters)", None),
+   ("“Brush your teeth.” by itself (17 characters)", "17 + 12 + 1 = 30 is equal to the Chunk Size, not over it, so “Get dressed.” fits."),
+   ("“Make the bed.” and “Brush your teeth.” (31 characters)", "“Make the bed.” is already in chunk 1, and there's no overlap. Besides, 31 is over 30."),
+   ("“Brush your teeth.”, “Get dressed.”, and “Eat breakfast.” (45 characters)", "45 is over 30.")],
+  "<p>Atoms: 8, 13, 17, 12, 14, 14, 14.</p>"
+  "<p>Buffer 8 → 22. Line 3: 22 + 17 + 1 = 40, over 30. <strong>Emit chunk 1 = 22.</strong></p>"
+  "<p>Buffer 17 → 17 + 12 + 1 = <strong>30</strong>, exactly the size, so it fits. "
+  "Line 5: 30 + 14 + 1 = 45, over 30. <strong>Emit chunk 2 = 30</strong>: “Brush your teeth.” and “Get dressed.”</p>",
+  doc=(T, N, 30, 0, [22, 30, 29, 14]))
+
+T = "Soil test done.\n\nSeeds are planted.\n\nWater every morning.\n\nPull the weeds weekly."
+q(8, CHK, "A", "<p>Give the chunks and their lengths.</p>",
+  [("Two chunks: 35 and 44", None),
+   ("Two chunks: 34 and 43", "The separator is <code>\\n\\n</code>, two characters. Each join costs 2, not 1."),
+   ("Two chunks: 33 and 42", "The separator counts when two paragraphs are glued together: +2 each time."),
+   ("Four chunks: 15, 18, 20, 22", "Paragraphs are the atoms, but atoms get glued together until the next one won't fit.")],
+  "<p>Atoms (paragraphs): 15, 18, 20, 22. The separator <code>\\n\\n</code> is 2 characters.</p>"
+  "<p>Buffer 15 → 15 + 18 + 2 = 35. Next: 35 + 20 + 2 = 57, over 45. <strong>Emit 35.</strong></p>"
+  "<p>Buffer 20 → 20 + 22 + 2 = 44. End: <strong>emit 44.</strong></p>",
+  doc=(T, NN, 45, 0, [35, 44]))
+
+q(8, CM, "D", "<p>A phone app listens to a person's voice for early signs of <strong>Parkinson's disease</strong>. Tested on 100 people:</p>"
+              + grid("App said Parkinson's", "App said no", "Really has it", "Really doesn't", 18, 6, 9, 67)
+              + "<p>How many people did the app <strong>say</strong> have Parkinson's?</p>",
+  [("27", None),
+   ("24", "That's the row, 18 + 6: the people who <em>really</em> have it."),
+   ("18", "That's only the ones the app got right. It said yes to 9 more who don't have it."),
+   ("85", "That's 18 + 67, every correct call.")],
+  "<p>“The app said yes” is the <strong>column</strong>: TP + FP = 18 + 9 = <strong>27</strong>.</p>"
+  "<p>Rows are the truth; columns are what the model said.</p>")
+
+assert math.isqrt(norm2((4, 4, 2))) == 6
+q(8, VEC, "D", "<p>Find the length of the 3-D vector (4, 4, 2).</p>",
+  [("6", None),
+   ("10", "That's 4 + 4 + 2. Square the components first."),
+   ("36", "That's 16 + 16 + 4, the right sum without the square root."),
+   ("√20", "Only two components got squared. A 3-D length uses all three: 16 + 16 + 4.")],
+  "<p>√(4² + 4² + 2²) = √(16 + 16 + 4) = √36 = <strong>6</strong>.</p>")
+
+q(8, THR, "B", "<p>At threshold 0.5, a classifier has precision <strong>0.8</strong> and recall <strong>0.6</strong>. "
+               "You <strong>raise</strong> the threshold to 0.8. Which pair could be its new numbers?</p>",
+  [("Precision 0.9, recall 0.4", None),
+   ("Precision 0.7, recall 0.8", "Recall can't go up when you raise the threshold. A higher bar never catches anything new."),
+   ("Precision 0.9, recall 0.7", "Precision up is plausible, but recall can't rise from 0.6."),
+   ("Precision 0.95, recall 0.65", "Recall rose from 0.6 to 0.65. A higher threshold can only lose true positives.")],
+  "<p>Raising the threshold removes flags; it never adds any. So TP can only fall or stay, and recall = TP ÷ (TP + FN) "
+  "<strong>can't go up</strong>. Three choices have recall above 0.6, so they're impossible.</p>"
+  "<p>Precision 0.9 with recall 0.4 is the usual pattern: fewer, surer flags.</p>")
+
+assert F(2) * F(1, 4) * 1 / (F(1, 4) + 1) == F(2, 5)
+q(8, F1S, "B", "<p>A lazy photo tagger labels <em>every</em> photo “cat.” A quarter of the photos really do show a cat. "
+               "What is its F1 score for “cat”?</p>",
+  [("0.4", None),
+   ("0.625", "That's the plain average of 0.25 and 1. F1 refuses to reward flagging everything that generously."),
+   ("0.25", "That's the precision alone."),
+   ("1.0", "That's the recall alone. Tagging everything catches every cat — and every non-cat.")],
+  "<p>Every cat is tagged, so recall = <strong>1</strong>. Only a quarter of the tags are right, so precision = <strong>0.25</strong>.</p>"
+  "<p>F1 = 2 × 0.25 × 1 ÷ (0.25 + 1) = 0.5 ÷ 1.25 = <strong>0.4</strong>.</p>")
+
+# ------------------------------------------------------------------ TEST 9
+vs = [(2, 0), (4, -2), (0, 6), (2, 4)]
+assert tuple(F(sum(c), 4) for c in zip(*vs)) == (2, 2)
+q(9, VEC, "C", "<p>A four-word phrase has (2-D) word embeddings (2, 0), (4, −2), (0, 6) and (2, 4). "
+               "Mean-pool them into one phrase vector.</p>",
+  [(v(2, 2), None),
+   (v(8, 8), "That's the sum. Mean pooling divides by the number of words, 4."),
+   (v(4, 4), "Divide by the number of words, 4, not by 2."),
+   (v(2, 3), "A sign slip: the second components are 0 − 2 + 6 + 4 = 8, not 12.")],
+  "<p>Add: (2 + 4 + 0 + 2, 0 − 2 + 6 + 4) = (8, 8). Divide by 4 words: <strong>(2, 2)</strong>.</p>")
+
+FREEZE = [("0.9", 16, 0, 24), ("0.7", 24, 6, 16), ("0.5", 32, 8, 8), ("0.3", 36, 24, 4)]
+assert [(pct(a, a + b), pct(a, a + c)) for _, a, b, c in FREEZE] == [(100, 40), (80, 60), (80, 80), (60, 90)]
+q(9, THR, "A", "<p>A bank's AI <strong>freezes</strong> a card when it suspects fraud. Frozen cards annoy customers, so the "
+               "bank's rule is: precision must be <strong>at least 80%</strong>, and after that, catch as much fraud as "
+               "possible. On a test with <strong>40</strong> real frauds:</p>"
+               + table(["Threshold", "TP", "FP", "FN"], [list(r) for r in FREEZE])
+               + "<p>Which threshold follows the rule?</p>",
+  [("0.5", None),
+   ("0.9", "Its precision is a perfect 100%, but it catches only 16 of 40 frauds. 0.5 also meets the rule and catches twice as many."),
+   ("0.7", "It meets the precision rule, but 0.5 meets it too and catches more (80% versus 60% recall)."),
+   ("0.3", "Best recall, but precision is 36 ÷ 60 = 60%. That breaks the rule.")],
+  "<p>Precision at each: 0.9 → 16 ÷ 16 = 100%; 0.7 → 24 ÷ 30 = 80%; 0.5 → 32 ÷ 40 = 80%; 0.3 → 36 ÷ 60 = 60%.</p>"
+  "<p>0.9, 0.7 and 0.5 meet the 80% rule. Recall among them: 40%, 60%, 80%. The most fraud caught is at <strong>0.5</strong>.</p>")
+
+fa = F(2) * F(9, 10) * F(5, 10) / (F(9, 10) + F(5, 10))
+assert fa == F(9, 14) and F(7, 10) > fa
+q(9, F1S, "A", "<p>Model A has precision 0.9 and recall 0.5. Model B has precision 0.7 and recall 0.7. Which has the higher F1?</p>",
+  [("Model B: 0.70 versus about 0.64", None),
+   ("Model A, because its precision is higher", "F1 isn't won by the single best number. A's weak recall drags it down."),
+   ("They tie, since both average to 0.70", "The plain averages tie, but F1 is pulled toward the smaller number, and A's smaller number is 0.5."),
+   ("You can't compare them without the confusion matrices", "Precision and recall are all F1 needs.")],
+  "<p>A: 2 × 0.9 × 0.5 ÷ (0.9 + 0.5) = 0.9 ÷ 1.4 ≈ 0.64.</p>"
+  "<p>B: equal precision and recall, so F1 = <strong>0.70</strong>.</p>"
+  "<p>Same plain average, but B is balanced, and F1 rewards balance.</p>")
+
+assert dot((2, -1, 2), (-2, 1, -2)) == -9 and norm2((2, -1, 2)) == 9
+q(9, DOT, "D", "<p>Find the cosine similarity of (2, −1, 2) and (−2, 1, −2).</p>",
+  [("−1", None),
+   ("−9", "That's the dot product. Divide by both lengths (3 × 3)."),
+   ("1", "The signs matter. Every component is flipped, so these point in opposite directions."),
+   ("0", "0 would mean perpendicular. These point in exactly opposite directions.")],
+  f"<p>Dot product: (2)(−2) + (−1)(1) + (2)(−2) = −4 − 1 − 4 = −9.</p>"
+  f"<p>Lengths: both √(4 + 1 + 4) = 3.</p>"
+  f"<p>Cosine similarity = {fr('−9', '3 × 3')} = <strong>−1</strong>. The second vector is the first times −1.</p>")
+
+q(9, CM, "C", "<p>A pharmacy AI checks <strong>100</strong> prescriptions for dangerous drug combinations. It gets "
+              "<strong>TP 6, FP 4, FN 2</strong>. How many prescriptions were correctly passed as safe (TN)?</p>",
+  [("88", None),
+   ("92", "That's 100 − 8, taking away only the dangerous prescriptions. The 4 false alarms aren't true negatives either."),
+   ("90", "That's 100 − 10, taking away only the flagged ones. The 2 missed dangerous ones aren't true negatives."),
+   ("94", "That's TP + TN, every correct call.")],
+  "<p>The four cells add to 100, so TN = 100 − 6 − 4 − 2 = <strong>88</strong>.</p>")
+
+assert math.isqrt(norm2((9, -12))) == 15
+q(9, VEC, "D", "<p>Find the unit vector pointing the same way as (9, −12).</p>",
+  [("(0.6, −0.8)", None),
+   ("(0.6, 0.8)", "The sign got lost. Dividing by a positive length keeps −12's minus sign."),
+   (v(3, -4), "That divides by 3, a common factor. A unit vector divides by the length, 15."),
+   ("(" + fr(3, 7) + ", −" + fr(4, 7) + ")", "That divides by 9 + 12 = 21. The length is √(81 + 144) = 15.")],
+  "<p>Length: √(81 + 144) = √225 = 15.</p>"
+  "<p>Divide each component by 15: (9/15, −12/15) = <strong>(0.6, −0.8)</strong>. Check: 0.36 + 0.64 = 1. ✓</p>")
+
+T = "Buy milk.\nBuy eggs.\nBuy bread.\nBuy jam."
+q(9, EDGE, "A", "<p>The Separator is <code>\\n\\n</code> (a blank line), and the Chunk Size is 20. How many chunks come out?</p>",
+  [("One chunk, 39 characters long", None),
+   ("Four chunks, one per line", "Only a blank line cuts here, and this list has none. Single newlines are just ordinary characters."),
+   ("Two chunks, 20 and 19 characters", "Atoms are never cut in the middle. The splitter only cuts at the separator."),
+   ("None, because nothing fits under 20", "Nothing is thrown away. An oversized atom comes out whole.")],
+  "<p>The separator <code>\\n\\n</code> never appears: the list is single-spaced. So the whole document is <strong>one atom</strong>: "
+  "9 + 9 + 10 + 8 + 3 newlines = 39 characters.</p>"
+  "<p>An atom is never split, so it comes out as <strong>one 39-character chunk</strong>, over the size. "
+  "The fix would be Separator <code>\\n</code>.</p>",
+  doc=(T, NN, 20, 0, [39]))
+
+q(9, F1S, "B", "<p>Can a model's F1 score ever be <strong>higher than both</strong> its precision and its recall?</p>",
+  [("No. It always lands between them, or equals them when they're equal", None),
+   ("Yes, when both are high", "Even with two high numbers, F1 sits between them."),
+   ("Yes, F1 adds them, so it's usually bigger", "F1 is a kind of average, not a sum. 2PR ÷ (P + R) never exceeds the larger one."),
+   ("No. It's always lower than both", "It's never below the smaller one. With P = 0.9 and R = 0.1, F1 is 0.18, above 0.1.")],
+  "<p>F1 is the <strong>harmonic mean</strong>, a kind of average. Like any average, it lands between the two numbers, "
+  "but it leans toward the smaller one.</p>")
+
+u_, w_ = (1, 4, -2), (1, -2, 3)
+s_ = tuple(a + b for a, b in zip(u_, w_))
+assert s_ == (2, 2, 1) and math.isqrt(norm2(s_)) == 3 and norm2(tuple(a - b for a, b in zip(u_, w_))) == 61
+q(9, VEC, "B", "<p>Let <b>u</b> = (1, 4, −2) and <b>v</b> = (1, −2, 3). Find ‖<b>u</b> + <b>v</b>‖.</p>",
+  [("3", None),
+   ("5", "That's 2 + 2 + 1, adding the components of u + v. Square them first."),
+   ("9", "That's 4 + 4 + 1, the right sum without the square root."),
+   ("√61", "That's ‖u − v‖. The question asks for u + v.")],
+  "<p><b>u</b> + <b>v</b> = (1 + 1, 4 − 2, −2 + 3) = (2, 2, 1).</p>"
+  "<p>‖(2, 2, 1)‖ = √(4 + 4 + 1) = √9 = <strong>3</strong>.</p>")
+
+q(9, CM, "D", "<p>A clinic has a confusion matrix for a screening test. To count how many patients <strong>really had</strong> "
+              "the illness, which two cells do they add?</p>",
+  [("TP + FN", None),
+   ("TP + FP", "That's everyone the test <em>said</em> was sick, the column. Some of them weren't."),
+   ("TP + TN", "Those are the correct calls, and TN patients are healthy."),
+   ("FP + FN", "Those are the mistakes.")],
+  "<p>Really sick patients are either caught (TP) or missed (FN): <strong>TP + FN</strong>, the “really sick” row.</p>")
+
+# ------------------------------------------------------------------ TEST 10
+tp = F(9, 10) * 20
+assert tp == 18 and tp / F(6, 10) == 30
+q(10, CPR, "C", "<p>A drone AI flags cracked solar panels. It flags <strong>20</strong> panels, with precision "
+                "<strong>90%</strong> and recall <strong>60%</strong>. How many cracked panels did it <strong>miss</strong>?</p>",
+  [("12", None),
+   ("2", "That's the false alarms: 20 flagged − 18 right. Misses are cracked panels that weren't flagged."),
+   ("30", "That's every cracked panel. 18 of them were caught."),
+   ("20", "That's how many it flagged.")],
+  "<p>Precision 90% of 20 flags → TP = <strong>18</strong>.</p>"
+  "<p>Recall 60% means 18 is 60% of all cracked panels, so there are 18 ÷ 0.6 = 30.</p>"
+  "<p>Missed = 30 − 18 = <strong>12</strong>.</p>")
+
+q(10, CM, "A", "<p>A smartwatch detects <strong>falls</strong> and automatically calls for help. Its wearer sits down hard on "
+               "the couch, and the watch calls for help. Which outcome is this?</p>",
+  [("False positive", None),
+   ("False negative", "A false negative would be a real fall with no call."),
+   ("True positive", "The watch said “fall,” but there was no fall."),
+   ("True negative", "The watch said yes, not no.")],
+  "<p>The watch is hunting for falls, so a call is a <strong>positive</strong>. There was no fall, so it's "
+  "<strong>false</strong>: a false positive.</p>")
+
+assert dot((F(6, 10), F(8, 10)), (F(8, 10), F(-6, 10))) == 0
+q(10, DOT, "B", "<p>Two word vectors, both of length 1: (0.6, 0.8) and (0.8, −0.6). What is their cosine similarity?</p>",
+  [("0", None),
+   ("0.96", "A sign slip: (0.8)(−0.6) = −0.48, so it's 0.48 − 0.48."),
+   ("1", "Both have length 1, but that's not their similarity."),
+   ("(0.48, −0.48)", "Multiply matching components, then add. Cosine similarity is one number.")],
+  "<p>Both are unit vectors, so cosine similarity is just the dot product: (0.6)(0.8) + (0.8)(−0.6) = 0.48 − 0.48 = "
+  "<strong>0</strong>. They're perpendicular: unrelated directions.</p>")
+
+assert (pct(45 + 185, 250), pct(185, 250), pct(45, 50), pct(15 + 5, 250)) == (92, 74, 90, 8)
+q(10, CM, "B", "<p>A satellite AI looks for illegal fishing boats in <strong>250</strong> images. <strong>50</strong> images "
+               "really contain one. It catches <strong>45</strong> of them and raises <strong>15</strong> false alarms. "
+               "What is its accuracy?</p>",
+  [("92%", None),
+   ("74%", "That's 185 ÷ 250, only the true negatives. The 45 catches are correct calls too."),
+   ("90%", "That's 45 ÷ 50, the share of boats caught. Accuracy is over all 250 images."),
+   ("8%", "That's (15 + 5) ÷ 250, the share of wrong calls.")],
+  "<p>TP 45, FN 50 − 45 = 5, FP 15, TN 250 − 45 − 5 − 15 = 185.</p>"
+  "<p>Accuracy = (45 + 185) ÷ 250 = 230 ÷ 250 = <strong>92%</strong>.</p>")
+
+MODELS = [("Model 1", 8, 2, 2, 88), ("Model 2", 10, 10, 0, 80), ("Model 3", 5, 0, 5, 90), ("Model 4", 7, 1, 3, 89)]
+assert all(tp + fn == 10 and tp + fp + fn + tn == 100 for _, tp, fp, fn, tn in MODELS)
+assert [f1(tp, fp, fn) for _, tp, fp, fn, _ in MODELS] == [F(4, 5), F(2, 3), F(2, 3), F(7, 9)]
+q(10, F1S, "A", "<p>Four models are tested on the same 100 cases, 10 of which are positive. Which has the highest F1?</p>"
+                + table(["", "TP", "FP", "FN", "TN"], [list(r) for r in MODELS]),
+  [("Model 1", None),
+   ("Model 2", "It catches all 10, but with 10 false alarms: F1 = 20 ÷ 30 ≈ 0.67."),
+   ("Model 3", "No false alarms, but it misses half: F1 = 10 ÷ 15 ≈ 0.67."),
+   ("Model 4", "Close: F1 = 14 ÷ 18 ≈ 0.78. Model 1's 0.80 edges it out.")],
+  "<p>Use 2TP ÷ (2TP + FP + FN) on each:</p>"
+  "<p>Model 1: 16 ÷ 20 = <strong>0.80</strong>. Model 2: 20 ÷ 30 ≈ 0.67. Model 3: 10 ÷ 15 ≈ 0.67. Model 4: 14 ÷ 18 ≈ 0.78.</p>"
+  "<p>TN isn't in the F1 formula at all.</p>")
+
+assert tuple(3 * a + b for a, b in zip((2, -1), (1, 5))) == (7, 2)
+q(10, VEC, "A", "<p>Find the number <em>k</em> that makes <em>k</em>(2, −1) + (1, 5) = (7, 2).</p>",
+  [("3", None),
+   ("4", "That's (7 + 1) ÷ 2. Move the 1 across by subtracting: 2k = 7 − 1."),
+   (fr(7, 2), "That ignores the + (1, 5). First components: 2k + 1 = 7."),
+   ("−3", "Check the second components: −(−3) + 5 = 8, not 2.")],
+  "<p>First components: 2k + 1 = 7, so 2k = 6, <strong>k = 3</strong>.</p>"
+  "<p>Check the second: −3 + 5 = 2. ✓</p>")
+
+assert dot((1, 2, 2), (0, 3, 4)) == 14 and norm2((0, 3, 4)) == 25
+q(10, DOT, "A", "<p>Find the cosine similarity of (1, 2, 2) and (0, 3, 4).</p>",
+  [(fr(14, 15), None),
+   ("14", "That's the dot product. Now divide by both lengths."),
+   (fr(14, 8), "That's 14 ÷ (3 + 5). Multiply the lengths. (Anything over 1 is a red flag.)"),
+   (fr(14, 225), "That divides by the squared lengths, 9 × 25. Take the square roots first: 3 × 5.")],
+  f"<p>Dot product: 0 + 6 + 8 = 14.</p>"
+  f"<p>Lengths: √(1 + 4 + 4) = 3 and √(0 + 9 + 16) = 5.</p>"
+  f"<p>Cosine similarity = {fr(14, '3 × 5')} = <strong>{fr(14, 15)}</strong>.</p>")
+
+assert (pct(97, 100), pct(3 + 87, 100)) == (97, 90)
+q(10, CM, "B", "<p>A building tests two <strong>gas-leak</strong> sensors on 100 readings, 3 of which are real leaks. "
+               "Sensor A says “no leak” every time. Sensor B catches all 3 leaks but raises 10 false alarms. "
+               "Which should the building use?</p>",
+  [("Sensor B, even though its accuracy is lower (90% versus 97%)", None),
+   ("Sensor A, because its accuracy is higher", "A's 97% comes from never saying yes. It would miss every leak."),
+   ("Sensor A, because Sensor B's false alarms make it useless", "A false alarm means someone checks and finds nothing. A missed leak can mean an explosion."),
+   ("Either one, since both are over 90% accurate", "Accuracy hides which mistakes each makes. A misses every leak; B misses none.")],
+  "<p>A: TN 97, FN 3 → accuracy 97%, zero leaks caught. B: TP 3, FP 10, TN 87 → accuracy 90%, every leak caught.</p>"
+  "<p>For gas leaks, a miss is the dangerous error. <strong>Sensor B.</strong> This is the accuracy trap again.</p>")
+
+cands = [(-6, 4), (0, -7), (5, 5), (4, -5)]
+assert [norm2(c) for c in cands] == [52, 49, 50, 41]
+q(10, VEC, "A", "<p>Which vector is <strong>longest</strong>?</p>",
+  [(v(-6, 4), None),
+   (v(0, -7), "Length 7 = √49. Close, but √52 is bigger."),
+   (v(5, 5), "Its components have the biggest sum, but length squares them: √50."),
+   (v(4, -5), "Length √(16 + 25) = √41.")],
+  "<p>Compare squared lengths (no square roots needed): 36 + 16 = 52, 0 + 49 = 49, 25 + 25 = 50, 16 + 25 = 41.</p>"
+  "<p>The biggest is 52: <strong>(−6, 4)</strong>. Minus signs don't shorten a vector; squaring removes them.</p>")
+
+T = "Open the lab.\nLog in to Langflow.\nLoad the file.\nSplit the text.\nEmbed each chunk.\nRun a search."
+assert shared_lines(T, N, 50, 20) == [1, 1]
+q(10, CHK, "C", "<p>How many lines appear in more than one chunk?</p>",
+  [("2", None),
+   ("1", "Overlap happens at every emit, not just the first. Check the step from chunk 2 to chunk 3."),
+   ("0", "After chunk 1, popping stops at 14, not over 20, so “Load the file.” carries."),
+   ("4", "Popping removes lines from the front until the buffer is 20 or less. Only one line survives each time.")],
+  "<p>Atoms: 13, 19, 14, 15, 17, 13.</p>"
+  "<p>Buffer 13 → 33 → 48. Line 4: 48 + 15 + 1 = 64, over 50. <strong>Emit 48.</strong> "
+  "Pop while over 20: → 34 → 14. “Load the file.” carries.</p>"
+  "<p>Buffer 14 → 30 → 48. Line 6: 48 + 13 + 1 = 62, over 50. <strong>Emit 48.</strong> "
+  "Pop while over 20: → 33 → 17. “Embed each chunk.” carries.</p>"
+  "<p>Buffer 17 → 31. End: <strong>emit 31.</strong> Two lines were shared: “Load the file.” and “Embed each chunk.”</p>",
+  doc=(T, N, 50, 20, [48, 48, 31]))
+
+
 # ------------------------------------------------------------------ assemble + check
 LETTERS = "ABCD"
-tests = {t: [] for t in range(1, 6)}
+tests = {t: [] for t in range(1, 11)}
 letter_count = {L: 0 for L in LETTERS}
+set_count = {s: {L: 0 for L in LETTERS} for s in (1, 2)}  # tests 1–5, tests 6–10
 
 for item in Q:
     ch = item["choices"]
@@ -689,6 +1276,7 @@ for item in Q:
     k = LETTERS.index(item["pos"])
     ordered = ch[1:k + 1] + [ch[0]] + ch[k + 1:]
     letter_count[item["pos"]] += 1
+    set_count[1 if item["test"] <= 5 else 2][item["pos"]] += 1
     out = dict(topic=item["topic"], prompt=item["prompt"],
                choices=[c for c, _ in ordered], answer=k,
                why=[w for _, w in ordered], solution=item["solution"])
@@ -703,9 +1291,10 @@ for item in Q:
 for t, qs in tests.items():
     assert len(qs) == 10, f"test {t} has {len(qs)} questions"
     topics = [x["topic"] for x in qs]
-    assert all(topics.count(tp) == 2 for tp in (VEC, DOT, CHK, EDGE, PR)), f"test {t} topic mix"
+    assert t > 5 or all(topics.count(tp) == 2 for tp in (VEC, DOT, CHK, EDGE, PR)), f"test {t} topic mix"
 
-assert max(letter_count.values()) - min(letter_count.values()) <= 1, letter_count
+for c in set_count.values():
+    assert max(c.values()) - min(c.values()) <= 1, set_count
 
 # The body serif draws ‖ as a thin single bar; give it a font that shows two.
 def norm_bars(x):
@@ -721,6 +1310,6 @@ with open(OUT, "w", encoding="utf-8") as f:
     json.dump(data, f, ensure_ascii=False, indent=1)
     f.write(";\n")
 
-print(f"OK: {len(Q)} questions, 5 tests, answer letters {letter_count}, "
+print(f"OK: {len(Q)} questions, {len(tests)} tests, answer letters {letter_count}, "
       f"chunking checked against {'REAL langchain splitter' if HAVE_LANGCHAIN else 'built-in algorithm only'}")
 print("wrote", os.path.normpath(OUT))

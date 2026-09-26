@@ -1033,5 +1033,984 @@ window.PRACTICE_TESTS = [
     "solution": "<p>Student One: best hits = smaller of 8 and 4 = 4, so best precision = 4 ÷ 8 = 50% and best recall = 100%. They hit <strong>both</strong>.</p><p>Student Two: best hits = smaller of 5 and 4 = 4, so best precision = 4 ÷ 5 = 80% and best recall = 100%. They got 60% and 75% — short on both.</p>"
    }
   ]
+ },
+ {
+  "number": 6,
+  "questions": [
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A store's self-checkout camera watches for items that weren't scanned. It flags a shopper for skipping an item, but the shopper had actually scanned everything. Which outcome is this?</p>",
+    "choices": [
+     "False negative",
+     "True positive",
+     "True negative",
+     "False positive"
+    ],
+    "answer": 3,
+    "why": [
+     "A false negative is a <em>miss</em>: a skipped item the camera didn't flag. Here the camera did flag — wrongly.",
+     "A true positive is a correct yes: the model said yes and the thing really was there. Nothing was skipped here.",
+     "A true negative is a correct no: the model said no and the thing really wasn't there. But the camera said yes.",
+     null
+    ],
+    "solution": "<p>The camera is hunting for skipped items, so a flag is a <strong>positive</strong>. It flagged (positive), and it was wrong (false). That's a <strong>false positive</strong> — a false alarm.</p>"
+   },
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A hospital AI reads <strong>100</strong> chest X-rays looking for pneumonia. <strong>15</strong> of the patients really have pneumonia. The AI flags <strong>20</strong> X-rays, and <strong>12</strong> of the flagged patients really have pneumonia. Which confusion matrix is right?</p>",
+    "choices": [
+     "TP 12, FP 3, FN 8, TN 77",
+     "TP 12, FP 8, FN 3, TN 80",
+     "TP 15, FP 5, FN 0, TN 80",
+     "TP 12, FP 8, FN 3, TN 77"
+    ],
+    "answer": 3,
+    "why": [
+     "FP and FN are swapped. False alarms come from the flags (20 − 12); misses come from the sick patients (15 − 12).",
+     "80 is 100 − 20, everyone who wasn't flagged — but that includes the 3 missed pneumonia patients. Check: the four cells must add to 100.",
+     "That assumes the AI caught all 15. Only 12 of the flagged patients were really sick.",
+     null
+    ],
+    "solution": "<p>TP = flagged and sick = <strong>12</strong>.</p><p>FP = flagged but healthy = 20 − 12 = <strong>8</strong>.</p><p>FN = sick but not flagged = 15 − 12 = <strong>3</strong>.</p><p>TN = everyone else = 100 − 12 − 8 − 3 = <strong>77</strong>.</p>"
+   },
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A weather AI predicts whether hail will fall, for each of <strong>200</strong> afternoons.</p><div class=\"qt-wrap\"><table class=\"qt cm\"><tr><td></td><th>AI said hail</th><th>AI said no hail</th></tr><tr><th>Really hail</th><td><b>30</b><small>TP</small></td><td><b>15</b><small>FN</small></td></tr><tr><th>Really no hail</th><td><b>5</b><small>FP</small></td><td><b>150</b><small>TN</small></td></tr></table></div><p>What is its <strong>accuracy</strong>?</p>",
+    "choices": [
+     "75%",
+     "10%",
+     "15%",
+     "90%"
+    ],
+    "answer": 3,
+    "why": [
+     "That's 150 ÷ 200, the true negatives alone. Accuracy counts both kinds of correct call.",
+     "That's (5 + 15) ÷ 200 — the share of calls that were <em>wrong</em>.",
+     "That's 30 ÷ 200, the true positives alone.",
+     null
+    ],
+    "solution": "<p>Accuracy = correct calls ÷ everything = (TP + TN) ÷ 200 = (30 + 150) ÷ 200 = 180 ÷ 200 = <strong>90%</strong>.</p>"
+   },
+   {
+    "topic": "Dot product & cosine similarity",
+    "prompt": "<p>Compute the dot product (5, −2) · (−1, 3).</p>",
+    "choices": [
+     "−11",
+     "1",
+     "(−5, −6)",
+     "6"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "A sign slip: (−2)(3) = −6, so it's −5 − 6, not −5 + 6.",
+     "Multiply matching components, then <em>add</em> them. A dot product is one number.",
+     "That's (5 + (−2)) × (−1 + 3) — adding inside each vector first."
+    ],
+    "solution": "<p>(5)(−1) + (−2)(3) = −5 − 6 = <strong>−11</strong>.</p>"
+   },
+   {
+    "topic": "Chunking edge cases",
+    "prompt": "<p>How long is chunk 1?</p>",
+    "choices": [
+     "26",
+     "37",
+     "53",
+     "38"
+    ],
+    "answer": 3,
+    "why": [
+     "Line 3 fits: 26 + 11 + 1 = 38 is <em>equal</em> to the Chunk Size, not over it. Only “over” forces an emit.",
+     "Three lines glued together need two newlines: 13 + 12 + 11 + 2 = 38.",
+     "Line 4 doesn't fit: 38 + 14 + 1 = 53 is over 38.",
+     null
+    ],
+    "solution": "<p>Atoms: 13, 12, 11, 14.</p><p>Buffer 13 → 13 + 12 + 1 = 26 → 26 + 11 + 1 = <strong>38</strong>. That's exactly the Chunk Size, and 38 is not <em>over</em> 38, so line 3 fits.</p><p>Line 4: 38 + 14 + 1 = 53, over 38. <strong>Emit chunk 1 = 38.</strong> Chunk 2 is just line 4: 14.</p>",
+    "doc": {
+     "text": "Pack a lunch.\nBring water.\nWear boots.\nCheck the map.",
+     "sep": "\n",
+     "size": 38,
+     "overlap": 0
+    }
+   },
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A wind farm uses an AI camera to spot eagles, so it can pause the turbines. On <strong>500</strong> test clips, <strong>5</strong> contain an eagle. A lazy model answers “no eagle” on <em>every</em> clip. What is its accuracy, and how many eagles does it catch?</p>",
+    "choices": [
+     "Accuracy 1%, and it catches no eagles",
+     "Accuracy 100%, and it catches all 5",
+     "Accuracy 99%, and it catches all 5",
+     "Accuracy 99%, and it catches no eagles"
+    ],
+    "answer": 3,
+    "why": [
+     "1% is the share of clips with an eagle. The model is right on all 495 eagle-free clips, so its accuracy is high.",
+     "It never says “eagle,” so it can't catch any.",
+     "Right accuracy, but a model that never says yes has zero true positives.",
+     null
+    ],
+    "solution": "<p>It's right on the 495 clips with no eagle (TN 495) and wrong on the 5 with one (FN 5). Accuracy = 495 ÷ 500 = <strong>99%</strong>, and it catches <strong>none</strong>.</p><p>That's the accuracy trap: when the thing you're hunting is rare, doing nothing scores high.</p>"
+   },
+   {
+    "topic": "Precision & recall in search",
+    "prompt": "<p>A search engine runs over <strong>40 sentences</strong> from a campus handbook. The question is <em>“When is the library open?”</em> The answer key marks <strong>8 sentences relevant</strong>. You set <strong>k = 5</strong>, and <strong>4</strong> of the 5 results are relevant. What are the precision and recall?</p>",
+    "choices": [
+     "Precision 50%, recall 80%",
+     "Precision 80%, recall 50%",
+     "Precision 80%, recall 10%",
+     "Precision 50%, recall 50%"
+    ],
+    "answer": 1,
+    "why": [
+     "Swapped. Precision divides by k (5); recall divides by the relevant sentences (8).",
+     null,
+     "10% is 4 ÷ 40, dividing by the whole collection. Recall divides by the 8 relevant sentences.",
+     "Precision divides by what came back (k = 5), not by the relevant sentences."
+    ],
+    "solution": "<p>Precision = hits ÷ k = 4 ÷ 5 = <strong>80%</strong>.</p><p>Recall = hits ÷ relevant = 4 ÷ 8 = <strong>50%</strong>.</p>"
+   },
+   {
+    "topic": "Dot product & cosine similarity",
+    "prompt": "<p>Find the cosine similarity of (1, 0) and (3, 4).</p>",
+    "choices": [
+     "3",
+     "0.5",
+     "0.6",
+     "0.75"
+    ],
+    "answer": 2,
+    "why": [
+     "That's the dot product. Now divide by both lengths.",
+     "That's 3 ÷ (1 + 5). Multiply the lengths, don't add them.",
+     null,
+     "That's 3 ÷ 4. The bottom is the product of the two lengths, 1 × 5."
+    ],
+    "solution": "<p>Dot product: (1)(3) + (0)(4) = 3.</p><p>Lengths: <span class=\"nm\">‖</span>(1, 0)<span class=\"nm\">‖</span> = 1 and <span class=\"nm\">‖</span>(3, 4)<span class=\"nm\">‖</span> = √25 = 5.</p><p>Cosine similarity = <span class=\"fr\"><span>3</span><span>1 × 5</span></span> = <span class=\"fr\"><span>3</span><span>5</span></span> = <strong>0.6</strong>.</p>"
+   },
+   {
+    "topic": "Chunking edge cases",
+    "prompt": "<p>Line 2 is 53 characters, and the Chunk Size is only 30. What happens to it?</p>",
+    "choices": [
+     "It's cut into a 30-character chunk and a 23-character chunk",
+     "It becomes a chunk by itself, 53 characters long",
+     "It's skipped, because it can't fit",
+     "It's glued to “Cool down.” in a 64-character chunk"
+    ],
+    "answer": 1,
+    "why": [
+     "Atoms are never split. The splitter only cuts at separators.",
+     null,
+     "Nothing is ever thrown away. Every atom lands in some chunk.",
+     "53 + 10 + 1 = 64 is over 30, so line 3 can't join it. It starts its own chunk."
+    ],
+    "solution": "<p>Atoms: 14, 53, 10.</p><p>Buffer 14. Line 2: 14 + 53 + 1 = 68, over 30. <strong>Emit 14.</strong> The buffer empties and takes line 2: 53.</p><p>Line 3: 53 + 10 + 1 = 64, over 30. <strong>Emit 53.</strong> Then line 3 alone: 10.</p><p>Chunks: 14, 53, 10. A single atom that's too big comes out whole and over the size. That's the <strong>only</strong> way a chunk can be over the Chunk Size.</p>",
+    "doc": {
+     "text": "Stretch first.\nRun two laps around the track before practice starts.\nCool down.",
+     "sep": "\n",
+     "size": 30,
+     "overlap": 0
+    }
+   },
+   {
+    "topic": "Vector arithmetic & length",
+    "prompt": "<p>Compute 2(3, −1) − 3(1, 2).</p>",
+    "choices": [
+     "(3, −8)",
+     "(2, −3)",
+     "(9, 4)",
+     "(3, 4)"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "That's (3, −1) − (1, 2): the 2 and the 3 never got used. Scale each vector first.",
+     "That's (6, −2) + (3, 6): added instead of subtracted.",
+     "A sign slip in the second component: −2 − 6 = −8, not 4."
+    ],
+    "solution": "<p>Scale: 2(3, −1) = (6, −2) and 3(1, 2) = (3, 6).</p><p>Subtract matching components: (6 − 3, −2 − 6) = <strong>(3, −8)</strong>.</p>"
+   }
+  ]
+ },
+ {
+  "number": 7,
+  "questions": [
+   {
+    "topic": "Precision & recall for classifiers",
+    "prompt": "<p>A city puts AI cameras on its buses to spot <strong>potholes</strong>. Tested on 200 stretches of road:</p><div class=\"qt-wrap\"><table class=\"qt cm\"><tr><td></td><th>AI said pothole</th><th>AI said fine</th></tr><tr><th>Really pothole</th><td><b>24</b><small>TP</small></td><td><b>6</b><small>FN</small></td></tr><tr><th>Really fine</th><td><b>8</b><small>FP</small></td><td><b>162</b><small>TN</small></td></tr></table></div><p>What are its precision and recall?</p>",
+    "choices": [
+     "Precision 80%, recall 75%",
+     "Precision 93%, recall 80%",
+     "Precision 12%, recall 80%",
+     "Precision 75%, recall 80%"
+    ],
+    "answer": 3,
+    "why": [
+     "Swapped. Precision reads the “said pothole” column (24 + 8); recall reads the “really pothole” row (24 + 6).",
+     "93% is (24 + 162) ÷ 200, the accuracy.",
+     "12% is 24 ÷ 200, dividing by every stretch of road instead of just the flagged ones.",
+     null
+    ],
+    "solution": "<p>Precision = TP ÷ (TP + FP) = 24 ÷ 32 = <strong>75%</strong>. Of the stretches it flagged, 3 in 4 had a pothole.</p><p>Recall = TP ÷ (TP + FN) = 24 ÷ 30 = <strong>80%</strong>. It found 4 of every 5 potholes.</p>"
+   },
+   {
+    "topic": "F1 score",
+    "prompt": "<p>A wildlife camera flags photos that contain a fox. Its precision is <strong>0.6</strong> and its recall is <strong>0.4</strong>. What is its F1 score?</p>",
+    "choices": [
+     "0.50",
+     "0.24",
+     "0.48",
+     "0.40"
+    ],
+    "answer": 2,
+    "why": [
+     "That's the plain average. F1 is pulled toward the smaller number.",
+     "That's P × R. The formula doubles it and divides by P + R.",
+     null,
+     "That's just the smaller of the two. F1 lands between them."
+    ],
+    "solution": "<p>F1 = 2 × P × R ÷ (P + R) = 2 × 0.6 × 0.4 ÷ (0.6 + 0.4) = 0.48 ÷ 1.0 = <strong>0.48</strong>.</p>"
+   },
+   {
+    "topic": "Precision & recall in search",
+    "prompt": "<p>A question has only <strong>3 relevant</strong> sentences in a collection of <strong>30</strong>. You set <strong>k = 6</strong>. What is the <strong>best possible precision</strong> this search could get?</p>",
+    "choices": [
+     "100%",
+     "10%",
+     "50%",
+     "20%"
+    ],
+    "answer": 2,
+    "why": [
+     "Six results, but only 3 relevant sentences exist. At least 3 results have to be junk.",
+     "That's 3 ÷ 30, dividing by the whole collection.",
+     null,
+     "That's 6 ÷ 30, the share of the collection that came back."
+    ],
+    "solution": "<p>Best possible hits = the smaller of k (6) and relevant (3) = 3.</p><p>Best possible precision = 3 ÷ 6 = <strong>50%</strong>. Even a perfect search can't beat that at k = 6. To raise the ceiling, lower k.</p>"
+   },
+   {
+    "topic": "The threshold",
+    "prompt": "<p>A recycling robot scores each item on a conveyor belt for how likely it is to be a <strong>plastic bottle</strong>, and grabs anything scoring <strong>at or above 0.60</strong>.</p><div class=\"qt-wrap\"><table class=\"qt\"><tr><th>Item</th><th>Score</th><th>Really…</th></tr><tr><td>1</td><td>0.55</td><td>not a bottle</td></tr><tr><td>2</td><td>0.92</td><td>bottle</td></tr><tr><td>3</td><td>0.30</td><td>not a bottle</td></tr><tr><td>4</td><td>0.60</td><td>bottle</td></tr><tr><td>5</td><td>0.81</td><td>not a bottle</td></tr><tr><td>6</td><td>0.12</td><td>not a bottle</td></tr><tr><td>7</td><td>0.67</td><td>bottle</td></tr><tr><td>8</td><td>0.43</td><td>bottle</td></tr></table></div><p>Which confusion matrix is right?</p>",
+    "choices": [
+     "TP 2, FP 1, FN 2, TN 3",
+     "TP 3, FP 2, FN 1, TN 2",
+     "TP 4, FP 0, FN 0, TN 4",
+     "TP 3, FP 1, FN 1, TN 3"
+    ],
+    "answer": 3,
+    "why": [
+     "Item 4 scores exactly 0.60. “At or above” means it gets grabbed.",
+     "Item 1 scores 0.55, below 0.60, so it isn't grabbed.",
+     "A perfect sorter. But item 5 (0.81) isn't a bottle, and item 8 (0.43) is.",
+     null
+    ],
+    "solution": "<p>Grabbed (0.60 or more): items 2 (0.92), 4 (0.60), 5 (0.81), 7 (0.67).</p><p>Bottles among them: 2, 4, 7 → <strong>TP 3</strong>. Not a bottle: item 5 → <strong>FP 1</strong>.</p><p>Left on the belt: 1, 3, 6, 8. The bottle there is item 8 (0.43) → <strong>FN 1</strong>. The rest → <strong>TN 3</strong>.</p>"
+   },
+   {
+    "topic": "Dot product & cosine similarity",
+    "prompt": "<p>For what value of <em>k</em> is (<em>k</em>, 3) perpendicular to (6, −4)?</p>",
+    "choices": [
+     "2",
+     "−2",
+     "12",
+     "<span class=\"fr\"><span>1</span><span>2</span></span>"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "A sign slip: 6k + (3)(−4) = 6k − 12, and 6k − 12 = 0 gives k = +2.",
+     "6k = 12, so k is 12 ÷ 6. Don't stop at 12.",
+     "That's 6 ÷ 12, upside down. 6k = 12 means k = 12 ÷ 6."
+    ],
+    "solution": "<p>Perpendicular means the dot product is 0: 6k + (3)(−4) = 0, so 6k − 12 = 0, 6k = 12, <strong>k = 2</strong>.</p><p>Check: (2)(6) + (3)(−4) = 12 − 12 = 0. ✓</p>"
+   },
+   {
+    "topic": "F1 score",
+    "prompt": "<p>An app that spots mold in photos of bread gets <strong>TP 6, FP 3, FN 1</strong>. What is its F1 score?</p>",
+    "choices": [
+     "0.60",
+     "About 0.67",
+     "0.75",
+     "About 0.86"
+    ],
+    "answer": 2,
+    "why": [
+     "That's 6 ÷ (6 + 3 + 1). The shortcut doubles TP on top <em>and</em> bottom: 2TP ÷ (2TP + FP + FN).",
+     "That's the precision, 6 ÷ 9. F1 combines precision with recall.",
+     null,
+     "That's the recall, 6 ÷ 7. F1 combines recall with precision."
+    ],
+    "solution": "<p>Use the count shortcut: F1 = 2TP ÷ (2TP + FP + FN) = 12 ÷ (12 + 3 + 1) = 12 ÷ 16 = <strong>0.75</strong>.</p><p>(Going through precision 6/9 and recall 6/7 gives the same answer, with much uglier fractions.)</p>"
+   },
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A bank's AI predicts which applicants will <strong>repay</strong> a loan; a “yes” means “will repay.” It says yes to an applicant who then never pays the loan back. Which outcome is this?</p>",
+    "choices": [
+     "False negative",
+     "False positive",
+     "True positive",
+     "True negative"
+    ],
+    "answer": 1,
+    "why": [
+     "That's the instinct that “positive” means the bad thing. Here the model is hunting for repayers: a yes is “will repay.”",
+     null,
+     "The model said yes, but it was wrong.",
+     "The model said yes, not no."
+    ],
+    "solution": "<p>What is the model hunting for? Applicants who <em>will repay</em>. So “will repay” is the positive.</p><p>It said yes (positive) and was wrong (false): a <strong>false positive</strong>. Positive means “the model said yes,” not “something bad.”</p>"
+   },
+   {
+    "topic": "Chunking edge cases",
+    "prompt": "<p>Give the chunk lengths.</p>",
+    "choices": [
+     "38, 23, 17",
+     "38, 32",
+     "38, 23, 32",
+     "38, 37, 32"
+    ],
+    "answer": 2,
+    "why": [
+     "When chunk 2 is emitted, popping “Boil it.” leaves 14. 14 is not over 14, so “Cover the pot.” stays.",
+     "That ignores the overlap. With overlap 14, the popping stops as soon as the buffer is 14 or less.",
+     null,
+     "After popping line 1 the buffer is 22, still over 14, so line 2 has to go too."
+    ],
+    "solution": "<p>Atoms: 15, 13, 8, 14, 17.</p><p>Buffer 15 → 29 → 38. Line 4: 38 + 14 + 1 = 53, over 40. <strong>Emit 38.</strong></p><p>Pop while over 14: → 22 → 8. Stop. “Boil it.” carries. Buffer 8 → 8 + 14 + 1 = 23. Line 5: 23 + 17 + 1 = 41, over 40. <strong>Emit 23.</strong></p><p>Pop while over 14: drop “Boil it.” → 23 − 8 − 1 = 14. 14 is <em>not over</em> 14, so stop. Buffer 14 → 14 + 17 + 1 = 32. End: <strong>emit 32.</strong></p>",
+    "doc": {
+     "text": "Rinse the rice.\nAdd two cups.\nBoil it.\nCover the pot.\nWait ten minutes.",
+     "sep": "\n",
+     "size": 40,
+     "overlap": 14
+    }
+   },
+   {
+    "topic": "Vector arithmetic & length",
+    "prompt": "<p>Find the length <span class=\"nm\">‖</span>(8, 15)<span class=\"nm\">‖</span>.</p>",
+    "choices": [
+     "23",
+     "289",
+     "17",
+     "7"
+    ],
+    "answer": 2,
+    "why": [
+     "That's 8 + 15. Length squares the components first.",
+     "That's 8² + 15², the right sum without the square root.",
+     null,
+     "That's 15 − 8. There's no subtraction in the length formula."
+    ],
+    "solution": "<p>√(8² + 15²) = √(64 + 225) = √289 = <strong>17</strong>.</p>"
+   },
+   {
+    "topic": "Chunking by hand",
+    "prompt": "<p>Give the chunks and their lengths.</p>",
+    "choices": [
+     "Two chunks: 36 and 40",
+     "Two chunks: 36 and 42",
+     "Two chunks: 48 and 30",
+     "Five chunks: 19, 16, 11, 14, 15"
+    ],
+    "answer": 1,
+    "why": [
+     "Chunk 2 has three lines, so it needs two newlines: 11 + 14 + 15 + 2 = 42.",
+     null,
+     "48 is over 45, so line 3 can't join chunk 1.",
+     "The separator makes the atoms. Atoms get glued together until the next one won't fit."
+    ],
+    "solution": "<p>Atoms: 19, 16, 11, 14, 15.</p><p>Buffer 19 → 19 + 16 + 1 = 36. Line 3: 36 + 11 + 1 = 48, over 45. <strong>Emit 36.</strong></p><p>No overlap, so start fresh: 11 → 11 + 14 + 1 = 26 → 26 + 15 + 1 = 42. End: <strong>emit 42.</strong></p>",
+    "doc": {
+     "text": "Plug in the kettle.\nFill it halfway.\nPick a mug.\nAdd a tea bag.\nPour the water.",
+     "sep": "\n",
+     "size": 45,
+     "overlap": 0
+    }
+   }
+  ]
+ },
+ {
+  "number": 8,
+  "questions": [
+   {
+    "topic": "The threshold",
+    "prompt": "<p>A plant nursery's AI flags leaves that show signs of blight. You <strong>lower</strong> its threshold from 0.7 to 0.4. What happens to its <strong>recall</strong>?</p>",
+    "choices": [
+     "It goes down",
+     "It goes up or stays the same. It can never go down",
+     "It always goes up",
+     "There's no way to tell. It could go either way"
+    ],
+    "answer": 1,
+    "why": [
+     "Backwards. A lower bar flags more leaves, so it can only catch more of the blighted ones.",
+     null,
+     "Almost. If no blighted leaf scores between 0.4 and 0.7, nothing new gets caught and recall stays put.",
+     "Lowering the threshold never un-flags anything, so a caught leaf stays caught."
+    ],
+    "solution": "<p>A lower threshold only <em>adds</em> flags; nothing that was flagged gets un-flagged. So TP can only grow or stay the same, while the number of blighted leaves (TP + FN) doesn't change.</p><p>Recall = TP ÷ (TP + FN) therefore <strong>goes up or stays the same</strong>. (Precision is the one that can move either way.)</p>"
+   },
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A cashier's scanner checks <strong>50</strong> bills for counterfeits. <strong>6</strong> of them are fake. The scanner flags <strong>5</strong> bills, and <strong>4</strong> of those are fake. How many real bills were wrongly flagged, and how many fakes got through?</p>",
+    "choices": [
+     "2 real bills flagged; 1 fake got through",
+     "1 real bill flagged; 2 fakes got through",
+     "4 real bills flagged; 2 fakes got through",
+     "1 real bill flagged; 1 fake got through"
+    ],
+    "answer": 1,
+    "why": [
+     "Swapped. The false alarms come from the flags (5 − 4); the misses come from the fakes (6 − 4).",
+     null,
+     "The 4 are flagged bills that really were fake. Those are the scanner's successes.",
+     "5 − 4 = 1 counts the false alarms. The misses start from the 6 fakes: 6 − 4 = 2."
+    ],
+    "solution": "<p>FP (real, but flagged) = flagged − caught fakes = 5 − 4 = <strong>1</strong>.</p><p>FN (fake, but not flagged) = fakes − caught fakes = 6 − 4 = <strong>2</strong>.</p>"
+   },
+   {
+    "topic": "Chunking by hand",
+    "prompt": "<p>How long is chunk 2?</p>",
+    "choices": [
+     "61",
+     "41",
+     "42",
+     "39"
+    ],
+    "answer": 2,
+    "why": [
+     "Adding line 5 gives 42 + 18 + 1 = 61, which is over 60, even if only by 1. It can't join.",
+     "Two lines glued together need a newline: 21 + 20 + 1 = 42.",
+     null,
+     "That's chunk 3."
+    ],
+    "solution": "<p>Atoms: 16, 19, 21, 20, 18.</p><p>Buffer 16 → 36 → 58. Line 4: 58 + 20 + 1 = 79, over 60. <strong>Emit 58.</strong></p><p>Pop while over 25: → 41 → 21. Stop. “Play the scale twice.” carries.</p><p>Buffer 21 → 21 + 20 + 1 = 42. Line 5: 42 + 18 + 1 = 61, over 60. <strong>Emit chunk 2 = 42.</strong></p>",
+    "doc": {
+     "text": "Tune the guitar.\nWarm up your hands.\nPlay the scale twice.\nLearn the new chord.\nPractice the song.",
+     "sep": "\n",
+     "size": 60,
+     "overlap": 25
+    }
+   },
+   {
+    "topic": "The threshold",
+    "prompt": "<p>A drone photographs a bridge, and an AI scores each photo for how likely it shows a <strong>crack</strong>.</p><div class=\"qt-wrap\"><table class=\"qt\"><tr><th>Photo</th><th>Score</th><th>Really…</th></tr><tr><td>1</td><td>0.66</td><td>no crack</td></tr><tr><td>2</td><td>0.88</td><td>crack</td></tr><tr><td>3</td><td>0.20</td><td>no crack</td></tr><tr><td>4</td><td>0.52</td><td>crack</td></tr><tr><td>5</td><td>0.08</td><td>no crack</td></tr><tr><td>6</td><td>0.35</td><td>crack</td></tr><tr><td>7</td><td>0.74</td><td>crack</td></tr><tr><td>8</td><td>0.41</td><td>no crack</td></tr></table></div><p>The engineers want <strong>every</strong> crack flagged, and after that, as few false alarms as possible. Which threshold should they use?</p>",
+    "choices": [
+     "0.30",
+     "0.50",
+     "0.40",
+     "0.10"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "Photo 6 is a crack scoring 0.35. At 0.50 it's missed.",
+     "Photo 6 (a crack at 0.35) is still below 0.40.",
+     "It catches every crack, but it also flags photo 3 (0.20) — three false alarms instead of two."
+    ],
+    "solution": "<p>The lowest-scoring crack is photo 6 at 0.35, so the threshold must be 0.35 or lower. That rules out 0.50 and 0.40.</p><p>At 0.30: flagged photos 1, 2, 4, 6, 7, 8. All 4 cracks, plus 2 false alarms (photos 1 and 8).</p><p>At 0.10: photo 3 (0.20) joins them, for 3 false alarms. So <strong>0.30</strong>.</p>"
+   },
+   {
+    "topic": "Chunking by hand",
+    "prompt": "<p>What is chunk 2?</p>",
+    "choices": [
+     "“Brush your teeth.” by itself (17 characters)",
+     "“Make the bed.” and “Brush your teeth.” (31 characters)",
+     "“Brush your teeth.” and “Get dressed.” (30 characters)",
+     "“Brush your teeth.”, “Get dressed.”, and “Eat breakfast.” (45 characters)"
+    ],
+    "answer": 2,
+    "why": [
+     "17 + 12 + 1 = 30 is equal to the Chunk Size, not over it, so “Get dressed.” fits.",
+     "“Make the bed.” is already in chunk 1, and there's no overlap. Besides, 31 is over 30.",
+     null,
+     "45 is over 30."
+    ],
+    "solution": "<p>Atoms: 8, 13, 17, 12, 14, 14, 14.</p><p>Buffer 8 → 22. Line 3: 22 + 17 + 1 = 40, over 30. <strong>Emit chunk 1 = 22.</strong></p><p>Buffer 17 → 17 + 12 + 1 = <strong>30</strong>, exactly the size, so it fits. Line 5: 30 + 14 + 1 = 45, over 30. <strong>Emit chunk 2 = 30</strong>: “Brush your teeth.” and “Get dressed.”</p>",
+    "doc": {
+     "text": "Wake up.\nMake the bed.\nBrush your teeth.\nGet dressed.\nEat breakfast.\nPack your bag.\nCatch the bus.",
+     "sep": "\n",
+     "size": 30,
+     "overlap": 0
+    }
+   },
+   {
+    "topic": "Chunking by hand",
+    "prompt": "<p>Give the chunks and their lengths.</p>",
+    "choices": [
+     "Two chunks: 35 and 44",
+     "Two chunks: 34 and 43",
+     "Two chunks: 33 and 42",
+     "Four chunks: 15, 18, 20, 22"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "The separator is <code>\\n\\n</code>, two characters. Each join costs 2, not 1.",
+     "The separator counts when two paragraphs are glued together: +2 each time.",
+     "Paragraphs are the atoms, but atoms get glued together until the next one won't fit."
+    ],
+    "solution": "<p>Atoms (paragraphs): 15, 18, 20, 22. The separator <code>\\n\\n</code> is 2 characters.</p><p>Buffer 15 → 15 + 18 + 2 = 35. Next: 35 + 20 + 2 = 57, over 45. <strong>Emit 35.</strong></p><p>Buffer 20 → 20 + 22 + 2 = 44. End: <strong>emit 44.</strong></p>",
+    "doc": {
+     "text": "Soil test done.\n\nSeeds are planted.\n\nWater every morning.\n\nPull the weeds weekly.",
+     "sep": "\n\n",
+     "size": 45,
+     "overlap": 0
+    }
+   },
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A phone app listens to a person's voice for early signs of <strong>Parkinson's disease</strong>. Tested on 100 people:</p><div class=\"qt-wrap\"><table class=\"qt cm\"><tr><td></td><th>App said Parkinson's</th><th>App said no</th></tr><tr><th>Really has it</th><td><b>18</b><small>TP</small></td><td><b>6</b><small>FN</small></td></tr><tr><th>Really doesn't</th><td><b>9</b><small>FP</small></td><td><b>67</b><small>TN</small></td></tr></table></div><p>How many people did the app <strong>say</strong> have Parkinson's?</p>",
+    "choices": [
+     "24",
+     "18",
+     "85",
+     "27"
+    ],
+    "answer": 3,
+    "why": [
+     "That's the row, 18 + 6: the people who <em>really</em> have it.",
+     "That's only the ones the app got right. It said yes to 9 more who don't have it.",
+     "That's 18 + 67, every correct call.",
+     null
+    ],
+    "solution": "<p>“The app said yes” is the <strong>column</strong>: TP + FP = 18 + 9 = <strong>27</strong>.</p><p>Rows are the truth; columns are what the model said.</p>"
+   },
+   {
+    "topic": "Vector arithmetic & length",
+    "prompt": "<p>Find the length of the 3-D vector (4, 4, 2).</p>",
+    "choices": [
+     "10",
+     "36",
+     "√20",
+     "6"
+    ],
+    "answer": 3,
+    "why": [
+     "That's 4 + 4 + 2. Square the components first.",
+     "That's 16 + 16 + 4, the right sum without the square root.",
+     "Only two components got squared. A 3-D length uses all three: 16 + 16 + 4.",
+     null
+    ],
+    "solution": "<p>√(4² + 4² + 2²) = √(16 + 16 + 4) = √36 = <strong>6</strong>.</p>"
+   },
+   {
+    "topic": "The threshold",
+    "prompt": "<p>At threshold 0.5, a classifier has precision <strong>0.8</strong> and recall <strong>0.6</strong>. You <strong>raise</strong> the threshold to 0.8. Which pair could be its new numbers?</p>",
+    "choices": [
+     "Precision 0.7, recall 0.8",
+     "Precision 0.9, recall 0.4",
+     "Precision 0.9, recall 0.7",
+     "Precision 0.95, recall 0.65"
+    ],
+    "answer": 1,
+    "why": [
+     "Recall can't go up when you raise the threshold. A higher bar never catches anything new.",
+     null,
+     "Precision up is plausible, but recall can't rise from 0.6.",
+     "Recall rose from 0.6 to 0.65. A higher threshold can only lose true positives."
+    ],
+    "solution": "<p>Raising the threshold removes flags; it never adds any. So TP can only fall or stay, and recall = TP ÷ (TP + FN) <strong>can't go up</strong>. Three choices have recall above 0.6, so they're impossible.</p><p>Precision 0.9 with recall 0.4 is the usual pattern: fewer, surer flags.</p>"
+   },
+   {
+    "topic": "F1 score",
+    "prompt": "<p>A lazy photo tagger labels <em>every</em> photo “cat.” A quarter of the photos really do show a cat. What is its F1 score for “cat”?</p>",
+    "choices": [
+     "0.625",
+     "0.4",
+     "0.25",
+     "1.0"
+    ],
+    "answer": 1,
+    "why": [
+     "That's the plain average of 0.25 and 1. F1 refuses to reward flagging everything that generously.",
+     null,
+     "That's the precision alone.",
+     "That's the recall alone. Tagging everything catches every cat — and every non-cat."
+    ],
+    "solution": "<p>Every cat is tagged, so recall = <strong>1</strong>. Only a quarter of the tags are right, so precision = <strong>0.25</strong>.</p><p>F1 = 2 × 0.25 × 1 ÷ (0.25 + 1) = 0.5 ÷ 1.25 = <strong>0.4</strong>.</p>"
+   }
+  ]
+ },
+ {
+  "number": 9,
+  "questions": [
+   {
+    "topic": "Vector arithmetic & length",
+    "prompt": "<p>A four-word phrase has (2-D) word embeddings (2, 0), (4, −2), (0, 6) and (2, 4). Mean-pool them into one phrase vector.</p>",
+    "choices": [
+     "(8, 8)",
+     "(4, 4)",
+     "(2, 2)",
+     "(2, 3)"
+    ],
+    "answer": 2,
+    "why": [
+     "That's the sum. Mean pooling divides by the number of words, 4.",
+     "Divide by the number of words, 4, not by 2.",
+     null,
+     "A sign slip: the second components are 0 − 2 + 6 + 4 = 8, not 12."
+    ],
+    "solution": "<p>Add: (2 + 4 + 0 + 2, 0 − 2 + 6 + 4) = (8, 8). Divide by 4 words: <strong>(2, 2)</strong>.</p>"
+   },
+   {
+    "topic": "The threshold",
+    "prompt": "<p>A bank's AI <strong>freezes</strong> a card when it suspects fraud. Frozen cards annoy customers, so the bank's rule is: precision must be <strong>at least 80%</strong>, and after that, catch as much fraud as possible. On a test with <strong>40</strong> real frauds:</p><div class=\"qt-wrap\"><table class=\"qt\"><tr><th>Threshold</th><th>TP</th><th>FP</th><th>FN</th></tr><tr><td>0.9</td><td>16</td><td>0</td><td>24</td></tr><tr><td>0.7</td><td>24</td><td>6</td><td>16</td></tr><tr><td>0.5</td><td>32</td><td>8</td><td>8</td></tr><tr><td>0.3</td><td>36</td><td>24</td><td>4</td></tr></table></div><p>Which threshold follows the rule?</p>",
+    "choices": [
+     "0.5",
+     "0.9",
+     "0.7",
+     "0.3"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "Its precision is a perfect 100%, but it catches only 16 of 40 frauds. 0.5 also meets the rule and catches twice as many.",
+     "It meets the precision rule, but 0.5 meets it too and catches more (80% versus 60% recall).",
+     "Best recall, but precision is 36 ÷ 60 = 60%. That breaks the rule."
+    ],
+    "solution": "<p>Precision at each: 0.9 → 16 ÷ 16 = 100%; 0.7 → 24 ÷ 30 = 80%; 0.5 → 32 ÷ 40 = 80%; 0.3 → 36 ÷ 60 = 60%.</p><p>0.9, 0.7 and 0.5 meet the 80% rule. Recall among them: 40%, 60%, 80%. The most fraud caught is at <strong>0.5</strong>.</p>"
+   },
+   {
+    "topic": "F1 score",
+    "prompt": "<p>Model A has precision 0.9 and recall 0.5. Model B has precision 0.7 and recall 0.7. Which has the higher F1?</p>",
+    "choices": [
+     "Model B: 0.70 versus about 0.64",
+     "Model A, because its precision is higher",
+     "They tie, since both average to 0.70",
+     "You can't compare them without the confusion matrices"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "F1 isn't won by the single best number. A's weak recall drags it down.",
+     "The plain averages tie, but F1 is pulled toward the smaller number, and A's smaller number is 0.5.",
+     "Precision and recall are all F1 needs."
+    ],
+    "solution": "<p>A: 2 × 0.9 × 0.5 ÷ (0.9 + 0.5) = 0.9 ÷ 1.4 ≈ 0.64.</p><p>B: equal precision and recall, so F1 = <strong>0.70</strong>.</p><p>Same plain average, but B is balanced, and F1 rewards balance.</p>"
+   },
+   {
+    "topic": "Dot product & cosine similarity",
+    "prompt": "<p>Find the cosine similarity of (2, −1, 2) and (−2, 1, −2).</p>",
+    "choices": [
+     "−9",
+     "1",
+     "0",
+     "−1"
+    ],
+    "answer": 3,
+    "why": [
+     "That's the dot product. Divide by both lengths (3 × 3).",
+     "The signs matter. Every component is flipped, so these point in opposite directions.",
+     "0 would mean perpendicular. These point in exactly opposite directions.",
+     null
+    ],
+    "solution": "<p>Dot product: (2)(−2) + (−1)(1) + (2)(−2) = −4 − 1 − 4 = −9.</p><p>Lengths: both √(4 + 1 + 4) = 3.</p><p>Cosine similarity = <span class=\"fr\"><span>−9</span><span>3 × 3</span></span> = <strong>−1</strong>. The second vector is the first times −1.</p>"
+   },
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A pharmacy AI checks <strong>100</strong> prescriptions for dangerous drug combinations. It gets <strong>TP 6, FP 4, FN 2</strong>. How many prescriptions were correctly passed as safe (TN)?</p>",
+    "choices": [
+     "92",
+     "90",
+     "88",
+     "94"
+    ],
+    "answer": 2,
+    "why": [
+     "That's 100 − 8, taking away only the dangerous prescriptions. The 4 false alarms aren't true negatives either.",
+     "That's 100 − 10, taking away only the flagged ones. The 2 missed dangerous ones aren't true negatives.",
+     null,
+     "That's TP + TN, every correct call."
+    ],
+    "solution": "<p>The four cells add to 100, so TN = 100 − 6 − 4 − 2 = <strong>88</strong>.</p>"
+   },
+   {
+    "topic": "Vector arithmetic & length",
+    "prompt": "<p>Find the unit vector pointing the same way as (9, −12).</p>",
+    "choices": [
+     "(0.6, 0.8)",
+     "(3, −4)",
+     "(<span class=\"fr\"><span>3</span><span>7</span></span>, −<span class=\"fr\"><span>4</span><span>7</span></span>)",
+     "(0.6, −0.8)"
+    ],
+    "answer": 3,
+    "why": [
+     "The sign got lost. Dividing by a positive length keeps −12's minus sign.",
+     "That divides by 3, a common factor. A unit vector divides by the length, 15.",
+     "That divides by 9 + 12 = 21. The length is √(81 + 144) = 15.",
+     null
+    ],
+    "solution": "<p>Length: √(81 + 144) = √225 = 15.</p><p>Divide each component by 15: (9/15, −12/15) = <strong>(0.6, −0.8)</strong>. Check: 0.36 + 0.64 = 1. ✓</p>"
+   },
+   {
+    "topic": "Chunking edge cases",
+    "prompt": "<p>The Separator is <code>\\n\\n</code> (a blank line), and the Chunk Size is 20. How many chunks come out?</p>",
+    "choices": [
+     "One chunk, 39 characters long",
+     "Four chunks, one per line",
+     "Two chunks, 20 and 19 characters",
+     "None, because nothing fits under 20"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "Only a blank line cuts here, and this list has none. Single newlines are just ordinary characters.",
+     "Atoms are never cut in the middle. The splitter only cuts at the separator.",
+     "Nothing is thrown away. An oversized atom comes out whole."
+    ],
+    "solution": "<p>The separator <code>\\n\\n</code> never appears: the list is single-spaced. So the whole document is <strong>one atom</strong>: 9 + 9 + 10 + 8 + 3 newlines = 39 characters.</p><p>An atom is never split, so it comes out as <strong>one 39-character chunk</strong>, over the size. The fix would be Separator <code>\\n</code>.</p>",
+    "doc": {
+     "text": "Buy milk.\nBuy eggs.\nBuy bread.\nBuy jam.",
+     "sep": "\n\n",
+     "size": 20,
+     "overlap": 0
+    }
+   },
+   {
+    "topic": "F1 score",
+    "prompt": "<p>Can a model's F1 score ever be <strong>higher than both</strong> its precision and its recall?</p>",
+    "choices": [
+     "Yes, when both are high",
+     "No. It always lands between them, or equals them when they're equal",
+     "Yes, F1 adds them, so it's usually bigger",
+     "No. It's always lower than both"
+    ],
+    "answer": 1,
+    "why": [
+     "Even with two high numbers, F1 sits between them.",
+     null,
+     "F1 is a kind of average, not a sum. 2PR ÷ (P + R) never exceeds the larger one.",
+     "It's never below the smaller one. With P = 0.9 and R = 0.1, F1 is 0.18, above 0.1."
+    ],
+    "solution": "<p>F1 is the <strong>harmonic mean</strong>, a kind of average. Like any average, it lands between the two numbers, but it leans toward the smaller one.</p>"
+   },
+   {
+    "topic": "Vector arithmetic & length",
+    "prompt": "<p>Let <b>u</b> = (1, 4, −2) and <b>v</b> = (1, −2, 3). Find <span class=\"nm\">‖</span><b>u</b> + <b>v</b><span class=\"nm\">‖</span>.</p>",
+    "choices": [
+     "5",
+     "3",
+     "9",
+     "√61"
+    ],
+    "answer": 1,
+    "why": [
+     "That's 2 + 2 + 1, adding the components of u + v. Square them first.",
+     null,
+     "That's 4 + 4 + 1, the right sum without the square root.",
+     "That's <span class=\"nm\">‖</span>u − v<span class=\"nm\">‖</span>. The question asks for u + v."
+    ],
+    "solution": "<p><b>u</b> + <b>v</b> = (1 + 1, 4 − 2, −2 + 3) = (2, 2, 1).</p><p><span class=\"nm\">‖</span>(2, 2, 1)<span class=\"nm\">‖</span> = √(4 + 4 + 1) = √9 = <strong>3</strong>.</p>"
+   },
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A clinic has a confusion matrix for a screening test. To count how many patients <strong>really had</strong> the illness, which two cells do they add?</p>",
+    "choices": [
+     "TP + FP",
+     "TP + TN",
+     "FP + FN",
+     "TP + FN"
+    ],
+    "answer": 3,
+    "why": [
+     "That's everyone the test <em>said</em> was sick, the column. Some of them weren't.",
+     "Those are the correct calls, and TN patients are healthy.",
+     "Those are the mistakes.",
+     null
+    ],
+    "solution": "<p>Really sick patients are either caught (TP) or missed (FN): <strong>TP + FN</strong>, the “really sick” row.</p>"
+   }
+  ]
+ },
+ {
+  "number": 10,
+  "questions": [
+   {
+    "topic": "Precision & recall for classifiers",
+    "prompt": "<p>A drone AI flags cracked solar panels. It flags <strong>20</strong> panels, with precision <strong>90%</strong> and recall <strong>60%</strong>. How many cracked panels did it <strong>miss</strong>?</p>",
+    "choices": [
+     "2",
+     "30",
+     "12",
+     "20"
+    ],
+    "answer": 2,
+    "why": [
+     "That's the false alarms: 20 flagged − 18 right. Misses are cracked panels that weren't flagged.",
+     "That's every cracked panel. 18 of them were caught.",
+     null,
+     "That's how many it flagged."
+    ],
+    "solution": "<p>Precision 90% of 20 flags → TP = <strong>18</strong>.</p><p>Recall 60% means 18 is 60% of all cracked panels, so there are 18 ÷ 0.6 = 30.</p><p>Missed = 30 − 18 = <strong>12</strong>.</p>"
+   },
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A smartwatch detects <strong>falls</strong> and automatically calls for help. Its wearer sits down hard on the couch, and the watch calls for help. Which outcome is this?</p>",
+    "choices": [
+     "False positive",
+     "False negative",
+     "True positive",
+     "True negative"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "A false negative would be a real fall with no call.",
+     "The watch said “fall,” but there was no fall.",
+     "The watch said yes, not no."
+    ],
+    "solution": "<p>The watch is hunting for falls, so a call is a <strong>positive</strong>. There was no fall, so it's <strong>false</strong>: a false positive.</p>"
+   },
+   {
+    "topic": "Dot product & cosine similarity",
+    "prompt": "<p>Two word vectors, both of length 1: (0.6, 0.8) and (0.8, −0.6). What is their cosine similarity?</p>",
+    "choices": [
+     "0.96",
+     "0",
+     "1",
+     "(0.48, −0.48)"
+    ],
+    "answer": 1,
+    "why": [
+     "A sign slip: (0.8)(−0.6) = −0.48, so it's 0.48 − 0.48.",
+     null,
+     "Both have length 1, but that's not their similarity.",
+     "Multiply matching components, then add. Cosine similarity is one number."
+    ],
+    "solution": "<p>Both are unit vectors, so cosine similarity is just the dot product: (0.6)(0.8) + (0.8)(−0.6) = 0.48 − 0.48 = <strong>0</strong>. They're perpendicular: unrelated directions.</p>"
+   },
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A satellite AI looks for illegal fishing boats in <strong>250</strong> images. <strong>50</strong> images really contain one. It catches <strong>45</strong> of them and raises <strong>15</strong> false alarms. What is its accuracy?</p>",
+    "choices": [
+     "74%",
+     "92%",
+     "90%",
+     "8%"
+    ],
+    "answer": 1,
+    "why": [
+     "That's 185 ÷ 250, only the true negatives. The 45 catches are correct calls too.",
+     null,
+     "That's 45 ÷ 50, the share of boats caught. Accuracy is over all 250 images.",
+     "That's (15 + 5) ÷ 250, the share of wrong calls."
+    ],
+    "solution": "<p>TP 45, FN 50 − 45 = 5, FP 15, TN 250 − 45 − 5 − 15 = 185.</p><p>Accuracy = (45 + 185) ÷ 250 = 230 ÷ 250 = <strong>92%</strong>.</p>"
+   },
+   {
+    "topic": "F1 score",
+    "prompt": "<p>Four models are tested on the same 100 cases, 10 of which are positive. Which has the highest F1?</p><div class=\"qt-wrap\"><table class=\"qt\"><tr><th></th><th>TP</th><th>FP</th><th>FN</th><th>TN</th></tr><tr><td>Model 1</td><td>8</td><td>2</td><td>2</td><td>88</td></tr><tr><td>Model 2</td><td>10</td><td>10</td><td>0</td><td>80</td></tr><tr><td>Model 3</td><td>5</td><td>0</td><td>5</td><td>90</td></tr><tr><td>Model 4</td><td>7</td><td>1</td><td>3</td><td>89</td></tr></table></div>",
+    "choices": [
+     "Model 1",
+     "Model 2",
+     "Model 3",
+     "Model 4"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "It catches all 10, but with 10 false alarms: F1 = 20 ÷ 30 ≈ 0.67.",
+     "No false alarms, but it misses half: F1 = 10 ÷ 15 ≈ 0.67.",
+     "Close: F1 = 14 ÷ 18 ≈ 0.78. Model 1's 0.80 edges it out."
+    ],
+    "solution": "<p>Use 2TP ÷ (2TP + FP + FN) on each:</p><p>Model 1: 16 ÷ 20 = <strong>0.80</strong>. Model 2: 20 ÷ 30 ≈ 0.67. Model 3: 10 ÷ 15 ≈ 0.67. Model 4: 14 ÷ 18 ≈ 0.78.</p><p>TN isn't in the F1 formula at all.</p>"
+   },
+   {
+    "topic": "Vector arithmetic & length",
+    "prompt": "<p>Find the number <em>k</em> that makes <em>k</em>(2, −1) + (1, 5) = (7, 2).</p>",
+    "choices": [
+     "3",
+     "4",
+     "<span class=\"fr\"><span>7</span><span>2</span></span>",
+     "−3"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "That's (7 + 1) ÷ 2. Move the 1 across by subtracting: 2k = 7 − 1.",
+     "That ignores the + (1, 5). First components: 2k + 1 = 7.",
+     "Check the second components: −(−3) + 5 = 8, not 2."
+    ],
+    "solution": "<p>First components: 2k + 1 = 7, so 2k = 6, <strong>k = 3</strong>.</p><p>Check the second: −3 + 5 = 2. ✓</p>"
+   },
+   {
+    "topic": "Dot product & cosine similarity",
+    "prompt": "<p>Find the cosine similarity of (1, 2, 2) and (0, 3, 4).</p>",
+    "choices": [
+     "<span class=\"fr\"><span>14</span><span>15</span></span>",
+     "14",
+     "<span class=\"fr\"><span>14</span><span>8</span></span>",
+     "<span class=\"fr\"><span>14</span><span>225</span></span>"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "That's the dot product. Now divide by both lengths.",
+     "That's 14 ÷ (3 + 5). Multiply the lengths. (Anything over 1 is a red flag.)",
+     "That divides by the squared lengths, 9 × 25. Take the square roots first: 3 × 5."
+    ],
+    "solution": "<p>Dot product: 0 + 6 + 8 = 14.</p><p>Lengths: √(1 + 4 + 4) = 3 and √(0 + 9 + 16) = 5.</p><p>Cosine similarity = <span class=\"fr\"><span>14</span><span>3 × 5</span></span> = <strong><span class=\"fr\"><span>14</span><span>15</span></span></strong>.</p>"
+   },
+   {
+    "topic": "The confusion matrix",
+    "prompt": "<p>A building tests two <strong>gas-leak</strong> sensors on 100 readings, 3 of which are real leaks. Sensor A says “no leak” every time. Sensor B catches all 3 leaks but raises 10 false alarms. Which should the building use?</p>",
+    "choices": [
+     "Sensor A, because its accuracy is higher",
+     "Sensor B, even though its accuracy is lower (90% versus 97%)",
+     "Sensor A, because Sensor B's false alarms make it useless",
+     "Either one, since both are over 90% accurate"
+    ],
+    "answer": 1,
+    "why": [
+     "A's 97% comes from never saying yes. It would miss every leak.",
+     null,
+     "A false alarm means someone checks and finds nothing. A missed leak can mean an explosion.",
+     "Accuracy hides which mistakes each makes. A misses every leak; B misses none."
+    ],
+    "solution": "<p>A: TN 97, FN 3 → accuracy 97%, zero leaks caught. B: TP 3, FP 10, TN 87 → accuracy 90%, every leak caught.</p><p>For gas leaks, a miss is the dangerous error. <strong>Sensor B.</strong> This is the accuracy trap again.</p>"
+   },
+   {
+    "topic": "Vector arithmetic & length",
+    "prompt": "<p>Which vector is <strong>longest</strong>?</p>",
+    "choices": [
+     "(−6, 4)",
+     "(0, −7)",
+     "(5, 5)",
+     "(4, −5)"
+    ],
+    "answer": 0,
+    "why": [
+     null,
+     "Length 7 = √49. Close, but √52 is bigger.",
+     "Its components have the biggest sum, but length squares them: √50.",
+     "Length √(16 + 25) = √41."
+    ],
+    "solution": "<p>Compare squared lengths (no square roots needed): 36 + 16 = 52, 0 + 49 = 49, 25 + 25 = 50, 16 + 25 = 41.</p><p>The biggest is 52: <strong>(−6, 4)</strong>. Minus signs don't shorten a vector; squaring removes them.</p>"
+   },
+   {
+    "topic": "Chunking by hand",
+    "prompt": "<p>How many lines appear in more than one chunk?</p>",
+    "choices": [
+     "1",
+     "0",
+     "2",
+     "4"
+    ],
+    "answer": 2,
+    "why": [
+     "Overlap happens at every emit, not just the first. Check the step from chunk 2 to chunk 3.",
+     "After chunk 1, popping stops at 14, not over 20, so “Load the file.” carries.",
+     null,
+     "Popping removes lines from the front until the buffer is 20 or less. Only one line survives each time."
+    ],
+    "solution": "<p>Atoms: 13, 19, 14, 15, 17, 13.</p><p>Buffer 13 → 33 → 48. Line 4: 48 + 15 + 1 = 64, over 50. <strong>Emit 48.</strong> Pop while over 20: → 34 → 14. “Load the file.” carries.</p><p>Buffer 14 → 30 → 48. Line 6: 48 + 13 + 1 = 62, over 50. <strong>Emit 48.</strong> Pop while over 20: → 33 → 17. “Embed each chunk.” carries.</p><p>Buffer 17 → 31. End: <strong>emit 31.</strong> Two lines were shared: “Load the file.” and “Embed each chunk.”</p>",
+    "doc": {
+     "text": "Open the lab.\nLog in to Langflow.\nLoad the file.\nSplit the text.\nEmbed each chunk.\nRun a search.",
+     "sep": "\n",
+     "size": 50,
+     "overlap": 20
+    }
+   }
+  ]
  }
 ];
